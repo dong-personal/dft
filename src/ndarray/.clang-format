@@ -1,0 +1,12 @@
+BasedOnStyle: Microsoft
+# AccessModifierOffset: -4
+AlignConsecutiveMacros: true
+AlignTrailingComments: true
+AlignAfterOpenBracket: Align
+AllowShortFunctionsOnASingleLine: Inline
+# AllowShortIfStatementsOnASingleLine: false
+# BreakBeforeBraces: Allman
+# ColumnLimit: 400
+# IndentWidth: 4
+# BreakBeforeDefinition: Always
+AlwaysBreakTemplateDeclarations: Yes

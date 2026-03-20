@@ -1,0 +1,32 @@
+[
+{
+  "directory": "/home/dong/home/DFT-FE/build/test",
+  "command": "/usr/bin/c++  -I/home/dong/home/DFT-FE/src -std=gnu++23 -o CMakeFiles/TestReadPoscar.dir/TestReadPoscar.cpp.o -c /home/dong/home/DFT-FE/test/TestReadPoscar.cpp",
+  "file": "/home/dong/home/DFT-FE/test/TestReadPoscar.cpp",
+  "output": "test/CMakeFiles/TestReadPoscar.dir/TestReadPoscar.cpp.o"
+},
+{
+  "directory": "/home/dong/home/DFT-FE/build/test",
+  "command": "/usr/bin/c++  -I/home/dong/home/DFT-FE/src -std=gnu++23 -o CMakeFiles/TestReadPoscar.dir/__/src/readPoscar.cpp.o -c /home/dong/home/DFT-FE/src/readPoscar.cpp",
+  "file": "/home/dong/home/DFT-FE/src/readPoscar.cpp",
+  "output": "test/CMakeFiles/TestReadPoscar.dir/__/src/readPoscar.cpp.o"
+},
+{
+  "directory": "/home/dong/home/DFT-FE/build/test",
+  "command": "/usr/bin/c++  -I/home/dong/home/DFT-FE/src -I/home/dong/home/DFT-FE/mfem/include -std=gnu++23 -o CMakeFiles/TestDFTMesh.dir/TestDFTMesh.cpp.o -c /home/dong/home/DFT-FE/test/TestDFTMesh.cpp",
+  "file": "/home/dong/home/DFT-FE/test/TestDFTMesh.cpp",
+  "output": "test/CMakeFiles/TestDFTMesh.dir/TestDFTMesh.cpp.o"
+},
+{
+  "directory": "/home/dong/home/DFT-FE/build/test",
+  "command": "/usr/bin/c++  -I/home/dong/home/DFT-FE/src -I/home/dong/home/DFT-FE/mfem/include -std=gnu++23 -o CMakeFiles/TestDFTMesh.dir/__/src/readPoscar.cpp.o -c /home/dong/home/DFT-FE/src/readPoscar.cpp",
+  "file": "/home/dong/home/DFT-FE/src/readPoscar.cpp",
+  "output": "test/CMakeFiles/TestDFTMesh.dir/__/src/readPoscar.cpp.o"
+},
+{
+  "directory": "/home/dong/home/DFT-FE/build/test",
+  "command": "/usr/bin/c++  -I/home/dong/home/DFT-FE/src -I/home/dong/home/DFT-FE/mfem/include -std=gnu++23 -o CMakeFiles/TestOverlap.dir/TestOverlap.cpp.o -c /home/dong/home/DFT-FE/test/TestOverlap.cpp",
+  "file": "/home/dong/home/DFT-FE/test/TestOverlap.cpp",
+  "output": "test/CMakeFiles/TestOverlap.dir/TestOverlap.cpp.o"
+}
+]
