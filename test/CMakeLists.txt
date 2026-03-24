@@ -54,7 +54,7 @@ set(TEST_SOURCES!
 # )
 
 # -------- TestOverlap --------
-add_executable(TestOverlap TestOverlap.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../src/readPoscar.cpp)
+add_executable(TestOverlap TestOverlap.cpp)
 target_include_directories(TestOverlap
     PRIVATE
         ${CMAKE_SOURCE_DIR}/src
@@ -62,6 +62,23 @@ target_include_directories(TestOverlap
 )
 target_link_libraries(TestOverlap
     PRIVATE
+        dft_core
         ${MFEM_LIBRARY}
 )
 target_compile_definitions(TestOverlap PRIVATE TEST_COMPILE)
+target_compile_definitions(TestOverlap PRIVATE DFT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+
+# -------- TestKinetic --------
+add_executable(TestKinetic TestKinetic.cpp)
+target_include_directories(TestKinetic
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${MFEM_INCLUDE_DIR}
+)
+target_link_libraries(TestKinetic
+    PRIVATE
+        dft_core
+        ${MFEM_LIBRARY}
+)
+target_compile_definitions(TestKinetic PRIVATE TEST_COMPILE)
+target_compile_definitions(TestKinetic PRIVATE DFT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
