@@ -82,3 +82,17 @@ target_link_libraries(TestKinetic
 )
 target_compile_definitions(TestKinetic PRIVATE TEST_COMPILE)
 target_compile_definitions(TestKinetic PRIVATE DFT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+
+# -------- TestPAW --------
+add_executable(TestPAW TestPAW.cpp)
+target_include_directories(TestPAW
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${MFEM_INCLUDE_DIR}
+)
+target_link_libraries(TestPAW
+    PRIVATE
+        dft_core
+        ${MFEM_LIBRARY}
+)
+target_compile_definitions(TestPAW PRIVATE DFT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")

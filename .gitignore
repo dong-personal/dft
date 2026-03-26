@@ -1,0 +1,5 @@
+.cache
+.vscode
+build/
+mfem/
+third_party/

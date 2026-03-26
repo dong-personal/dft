@@ -9,14 +9,14 @@
 
 ## 📁 新增文件说明
 
-| 文件 | 功能 | 行数 |
-|------|------|------|
-| `src/overlapMatrix.hpp` | 对角重叠矩阵 $S_{ij}$ | ~200 |
-| `src/hamiltonianMatrix.hpp` | Kohn-Sham哈密顿量 | ~180 |
-| `src/eigenvalueSolver.hpp` | 广义特征值求解器 | ~250 |
-| `src/spectralDFTSolver.hpp` | 主求解器+自洽场循环 | ~280 |
-| `test/test_spectral_dft.cpp` | 演示程序 | ~50 |
-| `SPECTRAL_DFT_GUIDE.md` | 详细实现指南 | 完整技术文档 |
+| 文件                         | 功能                  | 行数         |
+| ---------------------------- | --------------------- | ------------ |
+| `src/overlapMatrix.hpp`      | 对角重叠矩阵 $S_{ij}$ | ~200         |
+| `src/hamiltonianMatrix.hpp`  | Kohn-Sham哈密顿量     | ~180         |
+| `src/eigenvalueSolver.hpp`   | 广义特征值求解器      | ~250         |
+| `src/spectralDFTSolver.hpp`  | 主求解器+自洽场循环   | ~280         |
+| `test/test_spectral_dft.cpp` | 演示程序              | ~50          |
+| `SPECTRAL_DFT_GUIDE.md`      | 详细实现指南          | 完整技术文档 |
 
 ## ⚡ 快速测试
 
