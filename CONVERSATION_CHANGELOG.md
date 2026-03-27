@@ -5,6 +5,18 @@ This file records the code and build-system changes completed during the current
 Date: 2026-03-26
 Project: `DFT-FE`
 
+## 0. Reorganization request recorded
+
+### `REORGANIZATION_PLAN.md`
+- Added a dedicated planning note for the requested reorganization direction.
+- Recorded the requested container split:
+  - MFEM types for data that may need MPI transfer
+  - `ndarray` for small local arrays
+- Recorded the requested implementation order:
+  1. data-container and extensibility reorganization
+  2. move PAW code into a subfolder
+  3. restyle the code according to `STYLE`
+
 ## 1. Lifetime and ownership cleanup
 
 ### `src/DFTMesh.h`, `src/DFTMesh.cpp`
