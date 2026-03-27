@@ -1,5 +1,7 @@
 #pragma once
-// do not use slice of ndarray
+// Keep ndarray on the narrow local-array path:
+// - no slicing/subviews
+// - use MFEM types instead for MPI-facing or distributed data
 #include "ndarray/ndarray.hpp"
 #include <complex>
 

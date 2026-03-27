@@ -16,11 +16,9 @@ DFTGLLHexSpace::DFTGLLHexSpace(std::shared_ptr<dft::DFTMesh> mesh, int order, in
 }
 
 DFTGLLHexSpace::DFTGLLHexSpace(dft::DFTMesh &mesh, int order, int vdim)
-    : order_(order),                                 // order是有限元基函数的阶数
-      vdim_(vdim),                                   // vdim=n表示每个节点有n个分量（矢量场），也可以是1（标量场）
-      mesh_owner_(),
-      dft_mesh_(&mesh),
-      mesh_(&mesh.mesh()),
+    : order_(order), // order是有限元基函数的阶数
+      vdim_(vdim),   // vdim=n表示每个节点有n个分量（矢量场），也可以是1（标量场）
+      mesh_owner_(), dft_mesh_(&mesh), mesh_(&mesh.mesh()),
       fec_(order, 3, mfem::BasisType::GaussLobatto), // 3是空间维度
       fes_(mesh_, &fec_, vdim_)                      //
 {
@@ -62,7 +60,8 @@ void DFTGLLHexSpace::ApplyMassDiagTrue(const mfem::Vector &x_true, mfem::Vector 
 
 void DFTGLLHexSpace::ApplyMinvHalfTrue(const mfem::Vector &x_true, mfem::Vector &y_true) const
 {
-    MFEM_VERIFY(x_true.Size() == Minvhalf_true_.Size(), "Input size must match true-dof inverse sqrt mass diagonal size");
+    MFEM_VERIFY(x_true.Size() == Minvhalf_true_.Size(),
+                "Input size must match true-dof inverse sqrt mass diagonal size");
     y_true.SetSize(x_true.Size());
     for (int i = 0; i < x_true.Size(); ++i)
     {

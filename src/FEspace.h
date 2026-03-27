@@ -55,7 +55,8 @@ class DFTGLLHexSpace
 
   private:
     // ---------- tensor GLL rule ----------
-    // 定义积分规则, 这里的积分节点与有限元基函数节点相同（GLL节点）, 但是不同的东西, 可以使用更高阶的规则来提高积分精度
+    // 定义积分规则, 这里的积分节点与有限元基函数节点相同（GLL节点）,
+    // 但是不同的东西, 可以使用更高阶的规则来提高积分精度
     static mfem::IntegrationRule MakeHexTensorGLLRule_(int p)
     {
         const int np = p + 1;

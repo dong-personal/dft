@@ -1,133 +1,81 @@
 #ifndef NDARRAY_HPP
 #define NDARRAY_HPP
+
+#include <algorithm>
 #include <array>
+#include <limits>
+#include <memory>
+#include <stdexcept>
 #include <type_traits>
 #include <vector>
 
 #include "mdspan/mdspan/mdspan.hpp"
 
-/*how to optimize this NDArray
-1. Memory align for vectorization
-2. For some spec)fic)indices, use)a slice to substitute compu:e_index. For
-example, if the index is c,ntinuous, just use add operation.
-3. It may be ,etter to use int as index type, so vectoriz,tion can benefit from
-its smaller size.
-4. stack allocation for small arrays and some optimization in compile-time.
- */
-
-/*how to realize,a slice function
-1. option 1)( a )lass with run-time compute_index fuction
-2. option,2): a class with start, end, increment
-3, option 3): a,series of number, array or tuple
-:
-or a template class w,ich can inclu)e above two.
- */
-//:,
-
 #ifndef RankType
 #define RankType int
 #endif // RankType
 
-template <typename... T>
-struct Slice;
-
-template <typename T, RankType rank, typename Index>
-class NDArray;
-
-//==============================================================================
+// Lightweight local array wrapper for small in-process data.
 //
-//==============================================================================
-// 1. 基础的 Slice 类型检查
-template <typename T>
-struct is_slice : std::false_type
-{
-};
-
-template <typename... T>
-struct is_slice<Slice<T...>> : std::true_type
-{
-};
-
-template <typename T>
-inline constexpr bool is_slice_v = is_slice<T>::value;
-
-// 2. 更通用的 concept 版本
-template <typename T>
-concept IsSlice = is_slice_v<std::decay_t<T>>;
-
-template <typename T>
-concept IsIndex = std::is_integral_v<T>;
-
-template <typename T>
-concept IsIndexOrSlice = IsIndex<T> || IsSlice<T>;
-
-// 3. 检查参数包中是否包含 Slice
-template <typename... Args>
-inline constexpr bool has_slice_v = (is_slice_v<std::decay_t<Args>> || ...);
-
-template <typename... Args>
-inline constexpr bool all_indices_v = (IsIndex<Args> && ...);
-
-template <typename... Args>
-inline constexpr bool all_slices_v = (IsSlice<Args> && ...);
-
-// 4. 统计 Slice 的数量
-template <typename... Args>
-inline constexpr RankType slice_count_v = (static_cast<RankType>(IsSlice<std::decay_t<Args>>) + ...);
-
-template <typename... Args>
-inline constexpr RankType index_count_v = (static_cast<RankType>(IsIndex<Args>) + ...);
-
-// 5. 检查operator[]的参数是否匹配
-template <RankType rank, typename... Args>
-concept ValidIndexOrSlice = (sizeof...(Args) == rank) && (IsIndexOrSlice<Args> && ...);
-
-//==============================================================================
-//
-//==============================================================================
-template <typename T>
-    requires(IsIndex<T>)
-struct Slice<T>
-{
-    T start;
-    T end;
-    T increment;
-
-    Slice() = default;
-    Slice(T start, T end, T increment = 1)
-        : start(start), end(start + ((end - start + increment - 1) / increment) * increment), increment(increment)
-    {
-    }
-
-    T shape() const { return (end - start + increment - 1) / increment; }
-};
-
-//==============================================================================
-//
-//==============================================================================
-
-template <typename T, RankType rank, typename Index>
+// Notice:
+// - This class only supports basic multidimensional indexing.
+// - Slice, subview, and MPI/distributed-data use cases are intentionally not supported.
+// - Use MFEM containers for data that may need MPI communication or distributed ownership.
+// - This wrapper assumes contiguous row-major storage for its owning-storage path.
+// - The stack-buffer capacity is a compile-time template parameter.
+template <typename T, RankType rank, typename Index, std::size_t max_stack_elements = 64>
 class NDArray
 {
-
   public:
-    typedef std::array<Index, rank> ShapeType;
+    using ShapeType = std::array<Index, rank>;
+
+    template <typename, RankType, typename, std::size_t>
+    friend class NDArray;
 
   private:
-    // ShapeType m_shape;
+    using MdspanType = Kokkos::mdspan<T, Kokkos::dextents<Index, rank>, Kokkos::layout_stride>;
 
-    std::vector<T> m_data;
+    static constexpr std::size_t kMaxStackElements = max_stack_elements;
+    static constexpr bool kUsesStackStorage = kMaxStackElements > 0 && kMaxStackElements < 64;
 
-    Kokkos::mdspan<T, Kokkos::dextents<Index, rank>, Kokkos::layout_stride> m_mdspan;
+    struct HeapStorage
+    {
+        std::vector<T> heap_data;
 
-    static Index size_from_shape(const ShapeType &shape)
+        T *data_pointer() { return heap_data.data(); }
+
+        const T *data_pointer() const { return heap_data.data(); }
+
+        void assign(std::size_t element_count) { heap_data.assign(element_count, T{}); }
+    };
+
+    struct StackStorage
+    {
+        std::array<T, kMaxStackElements> stack_data{};
+
+        T *data_pointer() { return stack_data.data(); }
+
+        const T *data_pointer() const { return stack_data.data(); }
+
+        void assign(std::size_t element_count) { std::fill_n(stack_data.begin(), element_count, T{}); }
+    };
+
+    using OwningStorage = std::conditional_t<kUsesStackStorage, StackStorage, HeapStorage>;
+
+    std::unique_ptr<OwningStorage> m_storage;
+    MdspanType m_mdspan;
+
+    static constexpr Index size_from_shape(const ShapeType &shape)
     {
         Index total = 1;
-        for (auto d : shape)
-            total *= d;
+        for (const Index dimension : shape)
+        {
+            total *= dimension;
+        }
         return total;
     }
-    static ShapeType stride_from_shape(const ShapeType &shape)
+
+    static constexpr ShapeType stride_from_shape(const ShapeType &shape)
     {
         ShapeType stride{};
         for (RankType i = 0; i < rank; ++i)
@@ -141,113 +89,228 @@ class NDArray
         return stride;
     }
 
-    template <typename... Indices>
-    static std::array<Index, slice_count_v<Indices...>> shape_from_indices(Indices... indices)
-        requires(ValidIndexOrSlice<rank, Indices...>)
+    static constexpr bool has_negative_extent(const ShapeType &shape)
     {
-        std::array<Index, slice_count_v<Indices...>> result{};
-        Index slice_idx = 0;
-
-        auto process = [&slice_idx, &result](auto &&idx) {
-            using IdxType = std::decay_t<decltype(idx)>;
-            if constexpr (IsSlice<IdxType>)
+        if constexpr (std::is_signed_v<Index>)
+        {
+            for (const Index dimension : shape)
             {
-                result[slice_idx++] = idx.shape();
+                if (dimension < 0)
+                {
+                    return true;
+                }
             }
-        };
+        }
+        return false;
+    }
 
-        (process(indices), ...);
-        return result;
+#ifdef TEST_COMPILE
+    static constexpr bool size_overflows_index(const ShapeType &shape)
+    {
+        std::size_t total = 1;
+        for (const Index dimension : shape)
+        {
+            const std::size_t extent = static_cast<std::size_t>(dimension);
+            if (extent != 0 && total > std::numeric_limits<std::size_t>::max() / extent)
+            {
+                return true;
+            }
+            total *= extent;
+        }
+
+        return total > static_cast<std::size_t>(std::numeric_limits<Index>::max());
+    }
+#endif
+
+    static void validate_shape(const ShapeType &shape)
+    {
+#ifdef TEST_COMPILE
+        if (has_negative_extent(shape))
+        {
+            throw std::invalid_argument("NDArray shape dimensions must be non-negative");
+        }
+
+        if (size_overflows_index(shape))
+        {
+            throw std::overflow_error("NDArray shape size overflows index type");
+        }
+#endif
+    }
+
+    static std::size_t element_count_from_shape(const ShapeType &shape)
+    {
+        validate_shape(shape);
+
+        std::size_t total = 1;
+        for (const Index dimension : shape)
+        {
+            total *= static_cast<std::size_t>(dimension);
+        }
+        return total;
+    }
+
+    static MdspanType make_mdspan(T *data, const ShapeType &shape)
+    {
+        return MdspanType(
+            data, Kokkos::layout_stride::mapping<Kokkos::dextents<Index, rank>>(shape, stride_from_shape(shape)));
     }
 
     template <typename... Indices>
-    std::array<Index, slice_count_v<Indices...>> stride_from_indices(Indices... indices)
-        requires(ValidIndexOrSlice<rank, Indices...>)
-    {
-        std::array<Index, slice_count_v<Indices...>> result{};
-        Index slice_idx = 0;
-        Index dim_idx = 0;
-
-        auto process = [&](auto &&idx) {
-            using IdxType = std::decay_t<decltype(idx)>;
-            if constexpr (IsSlice<IdxType>)
-            {
-                result[slice_idx++] = this->m_mdspan.mapping().stride(dim_idx) * idx.increment;
-            }
-            ++dim_idx;
-        };
-
-        (process(indices), ...);
-        return result;
-    }
+    static constexpr bool kHasValidIndices =
+        sizeof...(Indices) == rank && (std::is_integral_v<std::decay_t<Indices>> && ...);
 
     template <typename... Indices>
-    Index offset_from_indices(Indices... indices) const
-        requires(ValidIndexOrSlice<rank, Indices...>)
+    bool indices_in_bounds(Indices... indices) const
+        requires(kHasValidIndices<Indices...>)
     {
-        Index offset = 0;
-        Index dim_idx = 0;
-
-        auto process = [&](auto &&idx) {
-            using IdxType = std::decay_t<decltype(idx)>;
-            if constexpr (IsSlice<IdxType>)
+        const std::array<Index, rank> index_array = {static_cast<Index>(indices)...};
+        for (RankType i = 0; i < rank; ++i)
+        {
+            if (index_array[i] < 0 || index_array[i] >= m_mdspan.extent(i))
             {
-                offset += idx.start * this->m_mdspan.mapping().stride(dim_idx);
+                return false;
             }
-            else
-            {
-                offset += idx * this->m_mdspan.mapping().stride(dim_idx);
-            }
-            ++dim_idx;
-        };
+        }
+        return true;
+    }
 
-        (process(indices), ...);
-        return offset;
+#ifdef TEST_COMPILE
+    template <typename... Indices>
+    void check_indices_in_bounds(Indices... indices) const
+        requires(kHasValidIndices<Indices...>)
+    {
+        if (!indices_in_bounds(indices...))
+        {
+            throw std::out_of_range("NDArray index out of bounds");
+        }
+    }
+#endif
+
+    T *owning_data_pointer() { return m_storage ? m_storage->data_pointer() : nullptr; }
+
+    const T *owning_data_pointer() const { return m_storage ? m_storage->data_pointer() : nullptr; }
+
+    void bind_mdspan(T *data, const ShapeType &shape)
+    {
+        const std::size_t element_count = element_count_from_shape(shape);
+#ifdef TEST_COMPILE
+        if (element_count > 0 && data == nullptr)
+        {
+            throw std::invalid_argument("NDArray data pointer must not be null for a non-empty shape");
+        }
+#endif
+
+        m_mdspan = make_mdspan(data, shape);
+    }
+
+    void assign_owned_storage(const ShapeType &shape)
+    {
+        const std::size_t element_count = element_count_from_shape(shape);
+#ifdef TEST_COMPILE
+        if constexpr (kUsesStackStorage)
+        {
+            if (element_count > kMaxStackElements)
+            {
+                throw std::length_error("NDArray shape exceeds compile-time stack capacity");
+            }
+        }
+#endif
+
+        m_storage = std::make_unique<OwningStorage>();
+        m_storage->assign(element_count);
+        bind_mdspan(owning_data_pointer(), shape);
+    }
+
+    void copy_from_other(const NDArray &other)
+    {
+        assign_owned_storage(other.shape());
+        std::copy_n(other.data_pointer(), other.size(), owning_data_pointer());
+    }
+
+    void move_from_other(NDArray &&other)
+    {
+        if (!other.data_pointer())
+        {
+            m_mdspan = MdspanType();
+            m_storage.reset();
+            return;
+        }
+
+        if (!other.m_storage)
+        {
+            m_mdspan = other.m_mdspan;
+            m_storage.reset();
+            return;
+        }
+
+        const ShapeType other_shape = other.shape();
+        if constexpr (kUsesStackStorage)
+        {
+            m_storage = std::make_unique<OwningStorage>();
+            m_storage->assign(other.size());
+            std::copy_n(other.owning_data_pointer(), other.size(), m_storage->data_pointer());
+            bind_mdspan(m_storage->data_pointer(), other_shape);
+            return;
+        }
+
+        m_storage = std::move(other.m_storage);
+        bind_mdspan(m_storage->data_pointer(), other_shape);
     }
 
   public:
-    // 默认构造
     NDArray() = default;
 
-    NDArray(const ShapeType &shape)
-        : m_data(size_from_shape(shape)),
-          m_mdspan(m_data.data(),
-                   Kokkos::layout_stride::mapping<Kokkos::dextents<Index, rank>>(shape, stride_from_shape(shape)))
+    template <Index... static_shape>
+        requires(sizeof...(static_shape) == rank)
+    static auto with_static_shape()
     {
-        // 这里不需要额外的操作，因为 std::vector 已经处理了默认值
+        constexpr ShapeType shape = {static_shape...};
+        static_assert(!has_negative_extent(shape), "Negative static shape is not allowed");
+#ifdef TEST_COMPILE
+        if constexpr (!has_negative_extent(shape))
+        {
+            static_assert(!size_overflows_index(shape), "Static shape size overflows index type");
+        }
+#endif
+        constexpr Index static_size = size_from_shape(shape);
+        if constexpr (kUsesStackStorage)
+        {
+            static_assert(static_size <= kMaxStackElements, "Static shape exceeds stack storage capacity");
+        }
+        NDArray<T, rank, Index, kMaxStackElements> array;
+        array.assign_owned_storage(shape);
+        return array;
     }
 
-    NDArray(const ShapeType &shape, T *p)
-        : m_mdspan(p, Kokkos::layout_stride::mapping<Kokkos::dextents<Index, rank>>(shape, stride_from_shape(shape)))
-    {
-    }
+    // Owning constructor for local contiguous storage.
+    explicit NDArray(const ShapeType &shape) { assign_owned_storage(shape); }
 
-    NDArray(Kokkos::mdspan<T, Kokkos::dextents<Index, rank>, Kokkos::layout_stride> mdspan) : m_mdspan(mdspan)
-    {
-        // 这里不需要额外的操作，因为 std::vector 已经处理了默认值
-    }
+    // Non-owning view constructor over external contiguous storage.
+    NDArray(const ShapeType &shape, T *data) { bind_mdspan(data, shape); }
 
-    // 拷贝构造
-    NDArray(const NDArray &other)
-        : m_data(other.m_mdspan.begin(), other.m_mdspan.end()),
-          m_mdspan(m_data.data(), Kokkos::layout_stride::mapping<Kokkos::dextents<Index, rank>>(
-                                      other.shape(), stride_from_shape(other.shape()))) {
-              // 这里不需要额外的操作，因为 std::vector 已经处理了深拷贝
-          };
+    explicit NDArray(MdspanType mdspan) : m_mdspan(mdspan) {}
 
-    // 移动构造
-    NDArray(NDArray &&other) noexcept = default;
+    NDArray(const NDArray &other) { copy_from_other(other); }
 
-    // 拷贝赋值
+    NDArray(NDArray &&other) noexcept { move_from_other(std::move(other)); }
+
     NDArray &operator=(const NDArray &other)
     {
         if (this != &other)
-            *this = NDArray(other); // 使用拷贝构造函数
+        {
+            copy_from_other(other);
+        }
         return *this;
     }
 
-    // 移动赋值
-    NDArray &operator=(NDArray &&other) noexcept = default;
+    NDArray &operator=(NDArray &&other) noexcept
+    {
+        if (this != &other)
+        {
+            move_from_other(std::move(other));
+        }
+        return *this;
+    }
 
     Index size() const { return m_mdspan.size(); }
 
@@ -255,45 +318,39 @@ class NDArray
     {
         ShapeType shape{};
         for (RankType i = 0; i < rank; ++i)
+        {
             shape[i] = m_mdspan.extent(i);
+        }
         return shape;
     }
 
     T *data_pointer() { return m_mdspan.data_handle(); }
 
+    const T *data_pointer() const { return m_mdspan.data_handle(); }
+
+    bool uses_stack_storage() const { return m_storage && kUsesStackStorage; }
+
     template <typename... Indices>
-        requires(ValidIndexOrSlice<rank, Indices...>)
-    auto operator[](Indices... indices)
+        requires(kHasValidIndices<Indices...>)
+    decltype(auto) operator[](Indices... indices)
     {
-        if constexpr (all_indices_v<Indices...>)
-            return m_mdspan[indices...];
-
-        else
-        {
-
-            auto mapping = Kokkos::layout_stride::mapping<Kokkos::dextents<Index, slice_count_v<Indices...>>>(
-                shape_from_indices(indices...), stride_from_indices(indices...));
-
-            return NDArray<T, slice_count_v<Indices...>, Index>(
-                Kokkos::mdspan(this->data_pointer() + offset_from_indices(indices...), mapping));
-        }
+#ifdef TEST_COMPILE
+        check_indices_in_bounds(indices...);
+#endif
+        // Only full-rank integer indexing is allowed.
+        return m_mdspan[indices...];
     }
 
     template <typename... Indices>
-    auto operator[](Indices... indices) const
-        requires(ValidIndexOrSlice<rank, Indices...>)
+        requires(kHasValidIndices<Indices...>)
+    decltype(auto) operator[](Indices... indices) const
     {
-        if constexpr (all_indices_v<Indices...>)
-            return m_mdspan[indices...];
-
-        else
-        {
-            auto mapping = Kokkos::layout_stride::mapping<Kokkos::dextents<Index, slice_count_v<Indices...>>>(
-                shape_from_indices(indices...), stride_from_indices(indices...));
-
-            return NDArray<T, slice_count_v<Indices...>, Index>(
-                Kokkos::mdspan(this->data_pointer() + offset_from_indices(indices...), mapping));
-        }
+#ifdef TEST_COMPILE
+        check_indices_in_bounds(indices...);
+#endif
+        // Only full-rank integer indexing is allowed.
+        return m_mdspan[indices...];
     }
 };
+
 #endif // NDARRAY_HPP

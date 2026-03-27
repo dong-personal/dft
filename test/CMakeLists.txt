@@ -164,3 +164,14 @@ target_link_libraries(TestPAWNonlocalFixed
         ${MFEM_LIBRARY}
 )
 target_compile_definitions(TestPAWNonlocalFixed PRIVATE DFT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+
+# -------- TestNdarray --------
+add_executable(TestNdarray TestNdarray.cpp)
+target_include_directories(TestNdarray
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+)
+target_compile_definitions(TestNdarray PRIVATE TEST_COMPILE)
+
+# -------- TestNdarrayFeatureMacro --------
+add_executable(TestNdarrayFeatureMacro TestNdarrayFeatureMacro.cpp)

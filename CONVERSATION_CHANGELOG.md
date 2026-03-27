@@ -17,6 +17,34 @@ Project: `DFT-FE`
   2. move PAW code into a subfolder
   3. restyle the code according to `STYLE`
 
+## 0.1. `ndarray` test relocation and review notes
+
+### `test/TestNdarray.cpp`, `test/TestNdarrayFeatureMacro.cpp`, `test/CMakeLists.txt`
+- Moved the local `ndarray` test files into the main `test/` directory.
+- Replaced the standalone `gtest`-only test with a repository-style executable test.
+- Added build targets so `ndarray` tests can be built from the main project build tree.
+
+### Removed old local test scaffolding
+- Removed `src/ndarray/test.cpp`
+- Removed `src/ndarray/test_ndarray.cpp`
+- Removed the obsolete `src/ndarray/CMakeLists.txt`
+
+### Review findings recorded during this step
+- `NDArray` const slicing does not compile because helper methods used by the const
+  `operator[]` are not const-correct.
+- `NDArray` copy construction does not compile because `mdspan` is treated like a
+  standard container with `begin()` / `end()`.
+- Reverse slicing with a negative increment reports the wrong shape/size at runtime.
+
+### `src/ndarray/ndarray.hpp`
+- Removed `NDArray` slicing support entirely.
+- Narrowed the API to:
+  - shape query
+  - size query
+  - data-pointer access
+  - basic multidimensional indexing only
+- Simplified copy handling to deep-copy contiguous storage through the raw data path.
+
 ## 1. Lifetime and ownership cleanup
 
 ### `src/DFTMesh.h`, `src/DFTMesh.cpp`
