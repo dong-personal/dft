@@ -96,3 +96,71 @@ target_link_libraries(TestPAW
         ${MFEM_LIBRARY}
 )
 target_compile_definitions(TestPAW PRIVATE DFT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+
+# -------- TestRadialInterpolator --------
+add_executable(TestRadialInterpolator TestRadialInterpolator.cpp)
+target_include_directories(TestRadialInterpolator
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${MFEM_INCLUDE_DIR}
+)
+target_link_libraries(TestRadialInterpolator
+    PRIVATE
+        dft_core
+        ${MFEM_LIBRARY}
+)
+target_compile_definitions(TestRadialInterpolator PRIVATE DFT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+
+# -------- TestSphericalHarmonics --------
+add_executable(TestSphericalHarmonics TestSphericalHarmonics.cpp)
+target_include_directories(TestSphericalHarmonics
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${MFEM_INCLUDE_DIR}
+)
+target_link_libraries(TestSphericalHarmonics
+    PRIVATE
+        dft_core
+        ${MFEM_LIBRARY}
+)
+
+# -------- TestPAWBasisEvaluator --------
+add_executable(TestPAWBasisEvaluator TestPAWBasisEvaluator.cpp)
+target_include_directories(TestPAWBasisEvaluator
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${MFEM_INCLUDE_DIR}
+)
+target_link_libraries(TestPAWBasisEvaluator
+    PRIVATE
+        dft_core
+        ${MFEM_LIBRARY}
+)
+
+# -------- TestPeriodicKDTree --------
+add_executable(TestPeriodicKDTree TestPeriodicKDTree.cpp)
+target_include_directories(TestPeriodicKDTree
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${MFEM_INCLUDE_DIR}
+)
+target_link_libraries(TestPeriodicKDTree
+    PRIVATE
+        dft_core
+        ${MFEM_LIBRARY}
+)
+target_compile_definitions(TestPeriodicKDTree PRIVATE DFT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+
+# -------- TestPAWNonlocalFixed --------
+add_executable(TestPAWNonlocalFixed TestPAWNonlocalFixed.cpp)
+target_include_directories(TestPAWNonlocalFixed
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${MFEM_INCLUDE_DIR}
+)
+target_link_libraries(TestPAWNonlocalFixed
+    PRIVATE
+        dft_core
+        ${MFEM_LIBRARY}
+)
+target_compile_definitions(TestPAWNonlocalFixed PRIVATE DFT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")

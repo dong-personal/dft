@@ -3,6 +3,11 @@ add_library(dft_core STATIC
     FEspace.cpp
     PAW.cpp
     kineticOperator.cpp
+    pawBasisEvaluator.cpp
+    pawNonlocalFixedOperator.cpp
+    periodicKDTree.cpp
+    radialInterpolator.cpp
+    sphericalHarmonics.cpp
     readPoscar.cpp
     ${CMAKE_SOURCE_DIR}/third_party/tinyxml2/tinyxml2.cpp
 )
@@ -10,6 +15,7 @@ add_library(dft_core STATIC
 target_include_directories(dft_core
     PUBLIC
         ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/third_party
         ${CMAKE_SOURCE_DIR}/third_party/tinyxml2
         ${MFEM_INCLUDE_DIR}
 )

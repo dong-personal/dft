@@ -4,6 +4,7 @@
 #include "mfem/mesh/mesh.hpp"
 #include <cmath>
 #include <memory>
+#include <vector>
 
 class DFTGLLHexSpace
 {
@@ -30,6 +31,7 @@ class DFTGLLHexSpace
 
     const mfem::Vector &MassDiagTrue() const { return Mdiag_true_; }
     const mfem::Vector &MinvHalfDiagTrue() const { return Minvhalf_true_; }
+    std::vector<dft::DFTMesh::Vec3> TrueDofCoordinates() const;
 
     void ApplyMassDiagTrue(const mfem::Vector &x_true, mfem::Vector &y_true) const;
     void ApplyMinvHalfTrue(const mfem::Vector &x_true, mfem::Vector &y_true) const;

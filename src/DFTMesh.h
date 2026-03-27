@@ -30,6 +30,8 @@ class DFTMesh
 
     mfem::Mesh &mesh();
     const mfem::Mesh &mesh() const;
+    const Structure *structure() const { return structure_; }
+    const Structure::Mat3 &lattice() const { return lattice_; }
 
     // 正确的 save（MFEM Print 接收 ostream）
     void save(const std::string &file) const;

@@ -27,6 +27,29 @@ DFTGLLHexSpace::DFTGLLHexSpace(dft::DFTMesh &mesh, int order, int vdim)
     BuildDiagonalMassAndMinvhalf_();
 }
 
+std::vector<dft::DFTMesh::Vec3> DFTGLLHexSpace::TrueDofCoordinates() const
+{
+    mfem::FiniteElementSpace coord_fes(mesh_, &fec_, 3, mfem::Ordering::byNODES);
+    mfem::GridFunction xyz(&coord_fes);
+
+    auto identity = [](const mfem::Vector &x, mfem::Vector &y) { y = x; };
+    mfem::VectorFunctionCoefficient xyz_coeff(3, identity);
+    xyz.ProjectCoefficient(xyz_coeff);
+
+    mfem::Vector true_xyz;
+    xyz.GetTrueDofs(true_xyz);
+
+    MFEM_VERIFY(true_xyz.Size() == 3 * getDOF(), "True coordinate vector size must match 3 * scalar true dofs");
+
+    std::vector<dft::DFTMesh::Vec3> coords(static_cast<std::size_t>(getDOF()));
+    for (int i = 0; i < getDOF(); ++i)
+    {
+        coords[static_cast<std::size_t>(i)] = {true_xyz(3 * i + 0), true_xyz(3 * i + 1), true_xyz(3 * i + 2)};
+    }
+
+    return coords;
+}
+
 void DFTGLLHexSpace::ApplyMassDiagTrue(const mfem::Vector &x_true, mfem::Vector &y_true) const
 {
     MFEM_VERIFY(x_true.Size() == Mdiag_true_.Size(), "Input size must match true-dof mass diagonal size");

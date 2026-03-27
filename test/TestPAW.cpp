@@ -23,6 +23,7 @@ int main()
     std::cout << "Projectors: " << stored.NumProjectors() << '\n';
     std::cout << "Local potential samples: " << stored.local_potential().size() << '\n';
     std::cout << "Core density samples: " << stored.core_density().size() << '\n';
+    std::cout << "Fixed nonlocal matrix size: " << stored.fixed_nonlocal_correction().size() << '\n';
 
     if (!registry.Has("C"))
     {
@@ -63,6 +64,30 @@ int main()
     if (stored.named_radial_functions().find("blochl_local_ionic_potential") == stored.named_radial_functions().end())
     {
         std::cerr << "Missing blochl_local_ionic_potential dataset" << std::endl;
+        return 1;
+    }
+
+    if (stored.kinetic_energy_differences().size() != stored.states().size())
+    {
+        std::cerr << "Unexpected kinetic-energy-differences matrix size" << std::endl;
+        return 1;
+    }
+
+    if (stored.static_coulomb_correction().size() != stored.states().size())
+    {
+        std::cerr << "Unexpected static Coulomb correction matrix size" << std::endl;
+        return 1;
+    }
+
+    if (stored.fixed_nonlocal_correction().size() != stored.states().size())
+    {
+        std::cerr << "Unexpected fixed nonlocal correction matrix size" << std::endl;
+        return 1;
+    }
+
+    if (stored.channels().front().fixed_nonlocal_correction.size() != stored.channels().front().projectors.size())
+    {
+        std::cerr << "Channel fixed nonlocal matrix does not match projector count" << std::endl;
         return 1;
     }
 
