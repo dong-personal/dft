@@ -1,4 +1,4 @@
-#include "FEspace.h"
+#include "fespace.h"
 #include <cmath>
 #include <iostream>
 #include <memory>
@@ -7,7 +7,7 @@ int main(void)
 {
     const std::string poscar_path = std::string(DFT_SOURCE_DIR) + "/data/C.POSCAR";
 
-    auto structure = std::make_shared<dft::Structure>(dft::readPoscar(poscar_path));
+    auto structure = std::make_shared<dft::Structure>(dft::read_poscar(poscar_path));
     auto dft_mesh = std::make_shared<dft::DFTMesh>();
     dft_mesh->set_structure(structure);
     dft_mesh->init_periodic_cell_from_lattice(structure->lattice(), 10, 10, 10);

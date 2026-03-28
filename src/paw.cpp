@@ -1,4 +1,4 @@
-#include "PAW.h"
+#include "paw.h"
 
 #include "tinyxml2.h"
 

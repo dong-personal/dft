@@ -1,4 +1,4 @@
-#include "pawBasisEvaluator.hpp"
+#include "paw_basis_evaluator.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -22,7 +22,13 @@ int main()
     const std::vector<double> radial_values{2.0, 2.0, 2.0};
     dft::RadialInterpolator radial(radial_grid, radial_values);
 
-    const dft::Atom atom("X", {0.0, 0.0, 0.0});
+    dft::Atom::AtomicPosition atom_position(typename dft::Atom::AtomicPosition::ShapeType{3});
+    atom_position[0] = 0.0;
+    atom_position[1] = 0.0;
+    atom_position[2] = 0.0;
+
+    dft::Atom atom("X", 1);
+    atom.set_position(0, atom_position);
     const dft::PAWBasisEvaluator evaluator(atom, radial);
 
     const double expected_y00 = 1.0 / (2.0 * std::sqrt(PI));

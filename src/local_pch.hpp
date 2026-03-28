@@ -1,4 +1,3 @@
 #pragma once
 
-#include "mfem.hpp"
 #include "ndarray/ndarray.hpp"

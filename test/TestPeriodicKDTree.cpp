@@ -1,5 +1,5 @@
-#include "FEspace.h"
-#include "periodicKDTree.hpp"
+#include "fespace.h"
+#include "periodic_kd_tree.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -70,7 +70,7 @@ double DistanceSquared(const Vec3 &x, const Vec3 &y)
     return dx * dx + dy * dy + dz * dz;
 }
 
-std::vector<NeighborKey> BruteForceNeighborsByImage(const std::vector<Vec3> &points, const dft::Structure::Mat3 &lattice,
+std::vector<NeighborKey> BruteForceNeighborsByImage(const std::vector<Vec3> &points, const dft::Structure::LatticeVectors &lattice,
                                                     const Vec3 &query, double radius,
                                                     const ImageDepth &periodic_images)
 {
@@ -79,7 +79,7 @@ std::vector<NeighborKey> BruteForceNeighborsByImage(const std::vector<Vec3> &poi
     {
         for (int col = 0; col < 3; ++col)
         {
-            cart_from_frac[row][col] = lattice[col][row];
+            cart_from_frac[row][col] = lattice[col, row];
         }
     }
 
@@ -151,7 +151,7 @@ int main()
 {
     const std::string poscar_path = std::string(DFT_SOURCE_DIR) + "/data/C.POSCAR";
 
-    auto structure = std::make_shared<dft::Structure>(dft::readPoscar(poscar_path));
+    auto structure = std::make_shared<dft::Structure>(dft::read_poscar(poscar_path));
     auto dft_mesh = std::make_shared<dft::DFTMesh>();
     dft_mesh->set_structure(structure);
     dft_mesh->init_periodic_cell_from_lattice(structure->lattice(), 4, 4, 4);
@@ -198,9 +198,9 @@ int main()
 
     const auto &lat = structure->lattice();
     const Vec3 shifted_query{
-        query[0] + lat[0][0],
-        query[1] + lat[0][1],
-        query[2] + lat[0][2],
+        query[0] + lat[0, 0],
+        query[1] + lat[0, 1],
+        query[2] + lat[0, 2],
     };
     const auto shifted_neighbors = locator.RadiusSearch(shifted_query, radius);
     std::vector<NeighborKey> shifted_by_image;

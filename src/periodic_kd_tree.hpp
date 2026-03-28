@@ -1,7 +1,7 @@
 #pragma once
 
-#include "FEspace.h"
-#include "Structure.h"
+#include "fespace.h"
+#include "structure.h"
 #include "nanoflann.hpp"
 
 #include <array>
@@ -24,7 +24,7 @@ class PeriodicKDTree3D
     using Vec3 = std::array<double, 3>;
     using ImageDepth = std::array<int, 3>;
 
-    PeriodicKDTree3D(const std::vector<Vec3> &points, const Structure::Mat3 &lattice,
+    PeriodicKDTree3D(const std::vector<Vec3> &points, const Structure::LatticeVectors &lattice,
                      ImageDepth periodic_images = {1, 1, 1});
 
     std::vector<PeriodicNeighbor> RadiusSearch(const Vec3 &query_point, double radius) const;
@@ -56,7 +56,7 @@ class PeriodicKDTree3D
         double frac_from_cart[3][3]{};
     };
 
-    static LatticeMatrices BuildLatticeMatrices_(const Structure::Mat3 &lattice);
+    static LatticeMatrices BuildLatticeMatrices_(const Structure::LatticeVectors &lattice);
     static Vec3 WrapToUnitCell_(const Vec3 &point, const LatticeMatrices &matrices, const ImageDepth &periodic_images);
     static Vec3 Multiply_(const double matrix[3][3], const Vec3 &vector);
 
@@ -68,7 +68,7 @@ class PeriodicKDTree3D
         nanoflann::L2_Simple_Adaptor<double, BasePointCloud>, BasePointCloud, 3, std::size_t>;
 
     std::vector<Vec3> points_;
-    Structure::Mat3 lattice_;
+    Structure::LatticeVectors lattice_;
     ImageDepth periodic_images_;
     LatticeMatrices matrices_;
     std::vector<std::array<int, 3>> image_shifts_;

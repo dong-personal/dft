@@ -1,9 +1,10 @@
 #pragma once
 
-#include "Atom.h"
-#include "radialInterpolator.hpp"
+#include "atom.h"
+#include "radial_interpolator.hpp"
 
 #include <array>
+#include <cstddef>
 
 namespace dft
 {
@@ -13,7 +14,8 @@ class PAWBasisEvaluator
   public:
     using Vec3 = std::array<double, 3>;
 
-    PAWBasisEvaluator(Atom::Vec3 center, RadialInterpolator radial_interpolator);
+    PAWBasisEvaluator(Atom::AtomicPosition center, RadialInterpolator radial_interpolator);
+    PAWBasisEvaluator(const Atom &atom, std::size_t position_index, RadialInterpolator radial_interpolator);
     PAWBasisEvaluator(const Atom &atom, RadialInterpolator radial_interpolator);
 
     double Evaluate(int l, int m, const Vec3 &point) const;

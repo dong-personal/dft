@@ -1,6 +1,6 @@
-#include "pawBasisEvaluator.hpp"
+#include "paw_basis_evaluator.hpp"
 
-#include "sphericalHarmonics.hpp"
+#include "spherical_harmonics.hpp"
 
 #include <cmath>
 #include <utility>
@@ -23,13 +23,19 @@ double Norm(const PAWBasisEvaluator::Vec3 &v)
 
 } // namespace
 
-PAWBasisEvaluator::PAWBasisEvaluator(Atom::Vec3 center, RadialInterpolator radial_interpolator)
-    : center_(center), radial_interpolator_(std::move(radial_interpolator))
+PAWBasisEvaluator::PAWBasisEvaluator(Atom::AtomicPosition center, RadialInterpolator radial_interpolator)
+    : center_{center[0], center[1], center[2]}, radial_interpolator_(std::move(radial_interpolator))
+{
+}
+
+PAWBasisEvaluator::PAWBasisEvaluator(const Atom &atom, std::size_t position_index,
+                                     RadialInterpolator radial_interpolator)
+    : PAWBasisEvaluator(atom.position(position_index), std::move(radial_interpolator))
 {
 }
 
 PAWBasisEvaluator::PAWBasisEvaluator(const Atom &atom, RadialInterpolator radial_interpolator)
-    : PAWBasisEvaluator(atom.position(), std::move(radial_interpolator))
+    : PAWBasisEvaluator(atom, 0, std::move(radial_interpolator))
 {
 }
 

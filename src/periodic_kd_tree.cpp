@@ -1,4 +1,4 @@
-#include "periodicKDTree.hpp"
+#include "periodic_kd_tree.hpp"
 
 #include <algorithm>
 #include <array>
@@ -39,9 +39,25 @@ void Invert3x3(const double a[3][3], double inv[3][3])
     inv[2][2] = (a[0][0] * a[1][1] - a[0][1] * a[1][0]) / det;
 }
 
+PeriodicKDTree3D::Vec3 ToPeriodicPoint(const dft::DFTMesh::SpatialPoint &point)
+{
+    return {point[0], point[1], point[2]};
+}
+
+std::vector<PeriodicKDTree3D::Vec3> ToPeriodicPointVector(const std::vector<dft::DFTMesh::SpatialPoint> &points)
+{
+    std::vector<PeriodicKDTree3D::Vec3> converted_points;
+    converted_points.reserve(points.size());
+    for (const auto &point : points)
+    {
+        converted_points.push_back(ToPeriodicPoint(point));
+    }
+    return converted_points;
+}
+
 } // namespace
 
-PeriodicKDTree3D::PeriodicKDTree3D(const std::vector<Vec3> &points, const Structure::Mat3 &lattice,
+PeriodicKDTree3D::PeriodicKDTree3D(const std::vector<Vec3> &points, const Structure::LatticeVectors &lattice,
                                    ImageDepth periodic_images)
     : points_(points),
       lattice_(lattice),
@@ -121,14 +137,14 @@ std::vector<PeriodicNeighbor> PeriodicKDTree3D::RadiusSearch(const Vec3 &query_p
     return neighbors;
 }
 
-PeriodicKDTree3D::LatticeMatrices PeriodicKDTree3D::BuildLatticeMatrices_(const Structure::Mat3 &lattice)
+PeriodicKDTree3D::LatticeMatrices PeriodicKDTree3D::BuildLatticeMatrices_(const Structure::LatticeVectors &lattice)
 {
     LatticeMatrices matrices;
     for (int row = 0; row < 3; ++row)
     {
         for (int col = 0; col < 3; ++col)
         {
-            matrices.cart_from_frac[row][col] = lattice[col][row];
+            matrices.cart_from_frac[row][col] = lattice[col, row];
         }
     }
     Invert3x3(matrices.cart_from_frac, matrices.frac_from_cart);
@@ -186,7 +202,7 @@ void PeriodicKDTree3D::BuildBasePointCloud_()
 }
 
 PeriodicGridPointLocator::PeriodicGridPointLocator(const DFTGLLHexSpace &space, ImageDepth periodic_images)
-    : tree_(space.TrueDofCoordinates(), space.MeshSource().lattice(), periodic_images)
+    : tree_(ToPeriodicPointVector(space.TrueDofCoordinates()), space.MeshSource().lattice(), periodic_images)
 {
 }
 

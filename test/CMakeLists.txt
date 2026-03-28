@@ -34,24 +34,30 @@ set(TEST_SOURCES!
 
 # # -------- TestReadPoscar --------
 
-# add_executable(TestReadPoscar TestReadPoscar.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../src/readPoscar.cpp)
-# target_include_directories(TestReadPoscar
-#     PRIVATE
-#         ${CMAKE_SOURCE_DIR}/src
-# )
+add_executable(TestReadPoscar TestReadPoscar.cpp)
+target_include_directories(TestReadPoscar
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+)
+target_link_libraries(TestReadPoscar
+    PRIVATE
+        dft_local_core
+)
+target_compile_definitions(TestReadPoscar PRIVATE DFT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
 
 # # -------- TestDFTMesh --------
-# add_executable(TestDFTMesh TestDFTMesh.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../src/readPoscar.cpp)
-# target_include_directories(TestDFTMesh
-#     PRIVATE
-#         ${CMAKE_SOURCE_DIR}/src
-#         ${MFEM_INCLUDE_DIR}
-# )
-# target_link_libraries(TestDFTMesh
-#     PRIVATE
-#         ${MFEM_LIBRARY}
-# )
+add_executable(TestDFTMesh TestDFTMesh.cpp)
+target_include_directories(TestDFTMesh
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${MFEM_INCLUDE_DIR}
+)
+target_link_libraries(TestDFTMesh
+    PRIVATE
+        dft_mfem_core
+)
+target_compile_definitions(TestDFTMesh PRIVATE DFT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
 # -------- TestOverlap --------
 add_executable(TestOverlap TestOverlap.cpp)
@@ -62,8 +68,7 @@ target_include_directories(TestOverlap
 )
 target_link_libraries(TestOverlap
     PRIVATE
-        dft_core
-        ${MFEM_LIBRARY}
+        dft_mfem_core
 )
 target_compile_definitions(TestOverlap PRIVATE TEST_COMPILE)
 target_compile_definitions(TestOverlap PRIVATE DFT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
@@ -77,8 +82,7 @@ target_include_directories(TestKinetic
 )
 target_link_libraries(TestKinetic
     PRIVATE
-        dft_core
-        ${MFEM_LIBRARY}
+        dft_mfem_core
 )
 target_compile_definitions(TestKinetic PRIVATE TEST_COMPILE)
 target_compile_definitions(TestKinetic PRIVATE DFT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
@@ -92,8 +96,7 @@ target_include_directories(TestPAW
 )
 target_link_libraries(TestPAW
     PRIVATE
-        dft_core
-        ${MFEM_LIBRARY}
+        dft_local_core
 )
 target_compile_definitions(TestPAW PRIVATE DFT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
@@ -106,8 +109,7 @@ target_include_directories(TestRadialInterpolator
 )
 target_link_libraries(TestRadialInterpolator
     PRIVATE
-        dft_core
-        ${MFEM_LIBRARY}
+        dft_local_core
 )
 target_compile_definitions(TestRadialInterpolator PRIVATE DFT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
@@ -120,8 +122,7 @@ target_include_directories(TestSphericalHarmonics
 )
 target_link_libraries(TestSphericalHarmonics
     PRIVATE
-        dft_core
-        ${MFEM_LIBRARY}
+        dft_local_core
 )
 
 # -------- TestPAWBasisEvaluator --------
@@ -133,8 +134,7 @@ target_include_directories(TestPAWBasisEvaluator
 )
 target_link_libraries(TestPAWBasisEvaluator
     PRIVATE
-        dft_core
-        ${MFEM_LIBRARY}
+        dft_local_core
 )
 
 # -------- TestPeriodicKDTree --------
@@ -146,8 +146,7 @@ target_include_directories(TestPeriodicKDTree
 )
 target_link_libraries(TestPeriodicKDTree
     PRIVATE
-        dft_core
-        ${MFEM_LIBRARY}
+        dft_mfem_core
 )
 target_compile_definitions(TestPeriodicKDTree PRIVATE DFT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
@@ -160,8 +159,7 @@ target_include_directories(TestPAWNonlocalFixed
 )
 target_link_libraries(TestPAWNonlocalFixed
     PRIVATE
-        dft_core
-        ${MFEM_LIBRARY}
+        dft_mfem_core
 )
 target_compile_definitions(TestPAWNonlocalFixed PRIVATE DFT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 

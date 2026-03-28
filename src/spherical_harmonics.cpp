@@ -1,4 +1,4 @@
-#include "sphericalHarmonics.hpp"
+#include "spherical_harmonics.hpp"
 
 #include <algorithm>
 #include <cmath>

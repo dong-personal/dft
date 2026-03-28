@@ -23,7 +23,7 @@
 // - Use MFEM containers for data that may need MPI communication or distributed ownership.
 // - This wrapper assumes contiguous row-major storage for its owning-storage path.
 // - The stack-buffer capacity is a compile-time template parameter.
-template <typename T, RankType rank, typename Index, std::size_t max_stack_elements = 64>
+template <typename T, RankType rank, typename Index, std::size_t max_stack_elements = 0>
 class NDArray
 {
   public:
@@ -352,5 +352,13 @@ class NDArray
         return m_mdspan[indices...];
     }
 };
+
+// Hot fixed-size instantiations used by Atom/Structure are emitted once in a
+// source file to reduce repeated template code generation across translation
+// units.
+#ifndef TEST_COMPILE
+extern template class NDArray<double, 1, int, 3>;
+extern template class NDArray<double, 2, int, 9>;
+#endif
 
 #endif // NDARRAY_HPP

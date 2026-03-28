@@ -1,6 +1,6 @@
 #pragma once
 
-#include "FEspace.h"
+#include "fespace.h"
 #include <iostream>
 
 class KineticOperator

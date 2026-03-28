@@ -1,18 +1,33 @@
-add_library(dft_core STATIC
-    DFTMesh.cpp
-    FEspace.cpp
-    PAW.cpp
-    kineticOperator.cpp
-    pawBasisEvaluator.cpp
-    pawNonlocalFixedOperator.cpp
-    periodicKDTree.cpp
-    radialInterpolator.cpp
-    sphericalHarmonics.cpp
-    readPoscar.cpp
+add_library(dft_local_core STATIC
+    paw.cpp
+    ndarray/ndarray_instantiations.cpp
+    paw_basis_evaluator.cpp
+    radial_interpolator.cpp
+    spherical_harmonics.cpp
+    read_poscar.cpp
     ${CMAKE_SOURCE_DIR}/third_party/tinyxml2/tinyxml2.cpp
 )
 
-target_include_directories(dft_core
+target_include_directories(dft_local_core
+    PUBLIC
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/third_party
+        ${CMAKE_SOURCE_DIR}/third_party/tinyxml2
+)
+
+target_precompile_headers(dft_local_core PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/local_pch.hpp"
+)
+
+add_library(dft_mfem_core STATIC
+    dftmesh.cpp
+    fespace.cpp
+    kinetic_operator.cpp
+    paw_nonlocal_fixed_operator.cpp
+    periodic_kd_tree.cpp
+)
+
+target_include_directories(dft_mfem_core
     PUBLIC
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/third_party
@@ -20,11 +35,19 @@ target_include_directories(dft_core
         ${MFEM_INCLUDE_DIR}
 )
 
-target_link_libraries(dft_core
+target_link_libraries(dft_mfem_core
     PUBLIC
+        dft_local_core
         ${MFEM_LIBRARY}
 )
 
-target_precompile_headers(dft_core PRIVATE
+target_precompile_headers(dft_mfem_core PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/pch.hpp"
+)
+
+add_library(dft_core INTERFACE)
+
+target_link_libraries(dft_core
+    INTERFACE
+        dft_mfem_core
 )

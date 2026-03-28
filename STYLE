@@ -7,8 +7,8 @@ Please refactor the C++ code according to the following style rules. Keep the st
   Examples: load_config(), calculate_sum(), is_valid()
 - Classes / structs / enum types: use PascalCase
   Examples: UserManager, FileReader, UserStatus
-- Class member variables: use snake_case with trailing underscore
-  Examples: user_name_, total_count_
+- Class member variables: use snake_case with prefix
+  Examples: m_user_name, m_total_count
 - Constants: use kPascalCase
   Examples: kMaxRetryCount, kDefaultPort
 - Macros: use UPPER_SNAKE_CASE
@@ -18,31 +18,22 @@ Please refactor the C++ code according to the following style rules. Keep the st
 - File names: use snake_case
   Examples: user_manager.cpp, file_reader.h
 
-2. Naming quality
+1. Naming quality
 - Use clear, meaningful names
 - Avoid vague names like a, b, tmp, data, flag
 - For bool variables/functions, prefer prefixes like is_, has_, can_, should_
   Examples: is_ready, has_error, can_retry
 - Avoid unnecessary abbreviations unless they are common (e.g. id, url, http)
 
-3. Code style
-- Use 4 spaces for indentation, no tabs
-- Use consistent brace style:
-  if (ok) {
-      do_something();
-  }
-- Keep lines under 100 characters when possible
-- Put spaces around operators
-- Put a space before parentheses in if / for / while
 
-4. Modern C++ rules
+3. Modern C++ rules
 - Use nullptr instead of NULL
 - Use constexpr / const instead of magic numbers when appropriate
 - Prefer enum class over plain enum
 - Prefer references over raw pointers when possible
 - Use explicit for single-argument constructors
 
-5. Refactoring constraints
+4. Refactoring constraints
 - Only improve naming, style, readability, and obviously non-idiomatic C++ usage
 - Do NOT change business logic
 - Minimize public API changes unless necessary

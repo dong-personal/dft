@@ -1,4 +1,4 @@
-#include "radialInterpolator.hpp"
+#include "radial_interpolator.hpp"
 
 #include <algorithm>
 #include <stdexcept>
