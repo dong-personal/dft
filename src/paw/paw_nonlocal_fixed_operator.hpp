@@ -5,7 +5,7 @@
 #include "paw/paw.hpp"
 #include "paw/paw_basis_evaluator.hpp"
 #include "paw/radial_interpolator.hpp"
-#include "periodic_kd_tree.hpp"
+#include "pkdtree.hpp"
 
 #include <array>
 #include <cstddef>

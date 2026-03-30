@@ -1,5 +1,5 @@
 #include "fespace.h"
-#include "kinetic_operator.hpp"
+#include "kinetic.hpp"
 
 #include <cmath>
 #include <iostream>

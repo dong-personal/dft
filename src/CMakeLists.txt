@@ -22,9 +22,9 @@ target_precompile_headers(dft_local_core PRIVATE
 add_library(dft_mfem_core STATIC
     dftmesh.cpp
     fespace.cpp
-    kinetic_operator.cpp
+    kinetic.cpp
     paw/paw_nonlocal_fixed_operator.cpp
-    periodic_kd_tree.cpp
+    pkdtree.cpp
 )
 
 target_include_directories(dft_mfem_core

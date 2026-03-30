@@ -1,5 +1,5 @@
 #include "fespace.h"
-#include "periodic_kd_tree.hpp"
+#include "pkdtree.hpp"
 
 #include <algorithm>
 #include <cmath>

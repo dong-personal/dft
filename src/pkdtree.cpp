@@ -1,4 +1,4 @@
-#include "periodic_kd_tree.hpp"
+#include "pkdtree.hpp"
 
 #include <algorithm>
 #include <array>

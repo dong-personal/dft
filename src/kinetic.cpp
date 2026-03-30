@@ -1,4 +1,4 @@
-#include "kinetic_operator.hpp"
+#include "kinetic.hpp"
 
 #include <iostream>
 
