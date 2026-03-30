@@ -1,4 +1,4 @@
-#include "spherical_harmonics.hpp"
+#include "paw/spherical_harmonics.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -17,19 +17,19 @@ constexpr double PI = 3.141592653589793238462643383279502884;
 
 int main()
 {
-    const double y00 = dft::EvaluateRealSphericalHarmonicFromAngles(0, 0, PI / 2.0, 0.0);
+    const double y00 = dft::evaluate_real_spherical_harmonic_from_angles(0, 0, PI / 2.0, 0.0);
     const double expected_y00 = 0.5 / std::sqrt(PI);
 
-    const double y10_z = dft::EvaluateRealSphericalHarmonic(1, 0, 0.0, 0.0, 1.0);
+    const double y10_z = dft::evaluate_real_spherical_harmonic(1, 0, 0.0, 0.0, 1.0);
     const double expected_y10_z = std::sqrt(3.0 / (4.0 * PI));
 
-    const double y11_x = dft::EvaluateRealSphericalHarmonic(1, 1, 1.0, 0.0, 0.0);
+    const double y11_x = dft::evaluate_real_spherical_harmonic(1, 1, 1.0, 0.0, 0.0);
     const double expected_y11_x = -std::sqrt(3.0 / (4.0 * PI));
 
-    const double y1m1_y = dft::EvaluateRealSphericalHarmonic(1, -1, 0.0, 1.0, 0.0);
+    const double y1m1_y = dft::evaluate_real_spherical_harmonic(1, -1, 0.0, 1.0, 0.0);
     const double expected_y1m1_y = -std::sqrt(3.0 / (4.0 * PI));
 
-    const double y20_z = dft::EvaluateRealSphericalHarmonic(2, 0, 0.0, 0.0, 1.0);
+    const double y20_z = dft::evaluate_real_spherical_harmonic(2, 0, 0.0, 0.0, 1.0);
     const double expected_y20_z = std::sqrt(5.0 / (4.0 * PI));
 
     std::cout << "Y00 = " << y00 << '\n';

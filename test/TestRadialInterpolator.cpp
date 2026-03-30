@@ -1,5 +1,5 @@
-#include "paw.h"
-#include "radial_interpolator.hpp"
+#include "paw/paw.hpp"
+#include "paw/radial_interpolator.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -8,7 +8,7 @@
 int main()
 {
     const std::string paw_path = std::string(DFT_SOURCE_DIR) + "/data/C.GGA_PBE-JTH.xml";
-    const dft::PAWSetup setup = dft::LoadPAWSetupXML(paw_path);
+    const dft::PAWSetup setup = dft::load_paw_setup_xml(paw_path);
 
     const auto radial_it = setup.named_radial_functions().find("zero_potential");
     if (radial_it == setup.named_radial_functions().end())
@@ -20,10 +20,10 @@ int main()
     const dft::RadialFunction &rf = radial_it->second;
     dft::RadialInterpolator interpolator(rf);
 
-    const double v0 = interpolator.Evaluate(rf.r.front());
-    const double v1 = interpolator.Evaluate(rf.r[1]);
-    const double mid_r = 0.5 * (rf.r[0] + rf.r[1]);
-    const double vmid = interpolator.Evaluate(mid_r);
+    const double v0 = interpolator.evaluate(rf.radii.front());
+    const double v1 = interpolator.evaluate(rf.radii[1]);
+    const double mid_r = 0.5 * (rf.radii[0] + rf.radii[1]);
+    const double vmid = interpolator.evaluate(mid_r);
     const double expected_mid = 0.5 * (rf.values[0] + rf.values[1]);
 
     std::cout << "Zero potential grid points: " << rf.size() << '\n';

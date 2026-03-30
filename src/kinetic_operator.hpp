@@ -10,7 +10,7 @@ class KineticOperator
 
     void Assemble();
 
-    bool IsAssembled() const { return assembled_; }
+    bool IsAssembled() const;
 
     const mfem::SparseMatrix &Matrix() const;
 
@@ -21,14 +21,14 @@ class KineticOperator
     void PrintInfo(std::ostream &os = std::cout) const;
 
   private:
-    static mfem::IntegrationRule MakeTensorGLLRule_(int order);
+    static mfem::IntegrationRule make_tensor_gll_rule_(int order);
 
-    const DFTGLLHexSpace &space_;
-    mfem::FiniteElementSpace *fes_;
-    int order_;
+    const DFTGLLHexSpace &m_space;
+    mfem::FiniteElementSpace *m_fes;
+    int m_order;
 
-    mfem::SparseMatrix matrix_;
-    bool assembled_{false};
+    mfem::SparseMatrix m_matrix;
+    bool m_is_assembled{false};
 
-    mfem::ConstantCoefficient half_coeff_{0.5};
+    mfem::ConstantCoefficient m_half_coefficient{0.5};
 };

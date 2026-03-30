@@ -2,9 +2,10 @@
 
 #include "atom.h"
 #include "fespace.h"
-#include "paw.h"
+#include "paw/paw.hpp"
+#include "paw/paw_basis_evaluator.hpp"
+#include "paw/radial_interpolator.hpp"
 #include "periodic_kd_tree.hpp"
-#include "radial_interpolator.hpp"
 
 #include <array>
 #include <cstddef>
@@ -19,19 +20,20 @@ class PAWNonlocalFixedOperator
                              std::size_t position_index = 0,
                              dft::PeriodicKDTree3D::ImageDepth periodic_images = {1, 1, 1});
 
-    void Apply(const mfem::Vector &x_true, mfem::Vector &y_true) const;
+    void apply(const mfem::Vector &x_true, mfem::Vector &y_true) const;
 
     const std::vector<dft::PeriodicNeighbor> &neighbors() const { return m_neighbors; }
     const dft::DenseMatrix &fixed_matrix() const { return m_setup.fixed_nonlocal_correction(); }
 
   private:
-    static Vec3 ToShiftedPoint_(const Vec3 &point, const dft::Structure::LatticeVectors &lattice,
-                                const std::array<int, 3> &periodic_image);
-    static Vec3 Subtract_(const Vec3 &a, const Vec3 &b);
-    static Vec3 FractionalToCartesianShift_(const dft::Structure::LatticeVectors &lattice, const std::array<int, 3> &periodic_image);
-    static double Norm_(const Vec3 &v);
+    static Vec3 to_shifted_point(const Vec3 &point, const dft::Structure::LatticeVectors &lattice,
+                                 const std::array<int, 3> &periodic_image);
+    static Vec3 subtract_vectors(const Vec3 &left, const Vec3 &right);
+    static Vec3 fractional_to_cartesian_shift(const dft::Structure::LatticeVectors &lattice,
+                                              const std::array<int, 3> &periodic_image);
+    static double norm(const Vec3 &vector);
 
-    void BuildProjectorTable_();
+    void build_projector_table();
 
   private:
     const DFTGLLHexSpace &m_space;

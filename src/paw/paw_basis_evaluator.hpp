@@ -1,7 +1,7 @@
 #pragma once
 
 #include "atom.h"
-#include "radial_interpolator.hpp"
+#include "paw/radial_interpolator.hpp"
 
 #include <array>
 #include <cstddef>
@@ -18,15 +18,15 @@ class PAWBasisEvaluator
     PAWBasisEvaluator(const Atom &atom, std::size_t position_index, RadialInterpolator radial_interpolator);
     PAWBasisEvaluator(const Atom &atom, RadialInterpolator radial_interpolator);
 
-    double Evaluate(int l, int m, const Vec3 &point) const;
-    double EvaluateFromDisplacement(int l, int m, const Vec3 &displacement) const;
+    double evaluate(int l, int m, const Vec3 &point) const;
+    double evaluate_from_displacement(int l, int m, const Vec3 &displacement) const;
 
-    const Vec3 &center() const { return center_; }
-    const RadialInterpolator &radial_interpolator() const { return radial_interpolator_; }
+    const Vec3 &center() const { return m_center; }
+    const RadialInterpolator &radial_interpolator() const { return m_radial_interpolator; }
 
   private:
-    Vec3 center_;
-    RadialInterpolator radial_interpolator_;
+    Vec3 m_center{};
+    RadialInterpolator m_radial_interpolator;
 };
 
 } // namespace dft

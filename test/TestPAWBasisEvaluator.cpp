@@ -1,4 +1,4 @@
-#include "paw_basis_evaluator.hpp"
+#include "paw/paw_basis_evaluator.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -35,10 +35,10 @@ int main()
     const double expected_y10 = std::sqrt(3.0 / (4.0 * PI));
     const double expected_y11 = -std::sqrt(3.0 / (4.0 * PI));
 
-    const double s_origin = evaluator.Evaluate(0, 0, {0.0, 0.0, 0.0});
-    const double pz_axis = evaluator.Evaluate(1, 0, {0.0, 0.0, 1.0});
-    const double px_axis = evaluator.Evaluate(1, 1, {1.0, 0.0, 0.0});
-    const double outside_cutoff = evaluator.Evaluate(0, 0, {0.0, 0.0, 3.0});
+    const double s_origin = evaluator.evaluate(0, 0, {0.0, 0.0, 0.0});
+    const double pz_axis = evaluator.evaluate(1, 0, {0.0, 0.0, 1.0});
+    const double px_axis = evaluator.evaluate(1, 1, {1.0, 0.0, 0.0});
+    const double outside_cutoff = evaluator.evaluate(0, 0, {0.0, 0.0, 3.0});
 
     std::cout << "s(origin) = " << s_origin << '\n';
     std::cout << "p_z(z-axis) = " << pz_axis << '\n';

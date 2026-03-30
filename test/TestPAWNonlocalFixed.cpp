@@ -1,6 +1,6 @@
 #include "fespace.h"
-#include "paw.h"
-#include "paw_nonlocal_fixed_operator.hpp"
+#include "paw/paw.hpp"
+#include "paw/paw_nonlocal_fixed_operator.hpp"
 
 #include <iostream>
 #include <memory>
@@ -16,7 +16,7 @@ int main()
     dft_mesh->init_periodic_cell_from_lattice(structure->lattice(), 4, 4, 4);
 
     DFTGLLHexSpace fespace(dft_mesh, 1);
-    const dft::PAWSetup setup = dft::LoadPAWSetupXML(paw_path);
+    const dft::PAWSetup setup = dft::load_paw_setup_xml(paw_path);
     const dft::Atom &atom_species = structure->atoms().front();
     const std::size_t position_index = 0;
 
@@ -25,7 +25,7 @@ int main()
     mfem::Vector x(fespace.getDOF());
     x = 1.0;
     mfem::Vector y;
-    nonlocal_fixed.Apply(x, y);
+    nonlocal_fixed.apply(x, y);
 
     std::cout << "True dofs: " << fespace.getDOF() << '\n';
     std::cout << "Projectors: " << setup.projectors_by_state().size() << '\n';

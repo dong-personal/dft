@@ -3,3 +3,4 @@
 build/
 mfem/
 third_party/
+.crossnote

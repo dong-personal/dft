@@ -1,9 +1,9 @@
 add_library(dft_local_core STATIC
-    paw.cpp
+    paw/paw.cpp
     ndarray/ndarray_instantiations.cpp
-    paw_basis_evaluator.cpp
-    radial_interpolator.cpp
-    spherical_harmonics.cpp
+    paw/paw_basis_evaluator.cpp
+    paw/radial_interpolator.cpp
+    paw/spherical_harmonics.cpp
     read_poscar.cpp
     ${CMAKE_SOURCE_DIR}/third_party/tinyxml2/tinyxml2.cpp
 )
@@ -23,7 +23,7 @@ add_library(dft_mfem_core STATIC
     dftmesh.cpp
     fespace.cpp
     kinetic_operator.cpp
-    paw_nonlocal_fixed_operator.cpp
+    paw/paw_nonlocal_fixed_operator.cpp
     periodic_kd_tree.cpp
 )
 
