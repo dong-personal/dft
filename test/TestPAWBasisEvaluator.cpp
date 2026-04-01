@@ -1,4 +1,4 @@
-#include "paw/paw_basis_evaluator.hpp"
+#include "paw/interpolator.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -13,6 +13,15 @@ bool NearlyEqual(double a, double b, double tol = 1e-12)
 }
 
 constexpr double PI = 3.141592653589793238462643383279502884;
+
+dft::PAWBasisEvaluator::Point3 make_point3(double x, double y, double z)
+{
+    dft::PAWBasisEvaluator::Point3 point(typename dft::PAWBasisEvaluator::Point3::ShapeType{3});
+    point[0] = x;
+    point[1] = y;
+    point[2] = z;
+    return point;
+}
 
 } // namespace
 
@@ -35,10 +44,10 @@ int main()
     const double expected_y10 = std::sqrt(3.0 / (4.0 * PI));
     const double expected_y11 = -std::sqrt(3.0 / (4.0 * PI));
 
-    const double s_origin = evaluator.evaluate(0, 0, {0.0, 0.0, 0.0});
-    const double pz_axis = evaluator.evaluate(1, 0, {0.0, 0.0, 1.0});
-    const double px_axis = evaluator.evaluate(1, 1, {1.0, 0.0, 0.0});
-    const double outside_cutoff = evaluator.evaluate(0, 0, {0.0, 0.0, 3.0});
+    const double s_origin = evaluator.evaluate(0, 0, make_point3(0.0, 0.0, 0.0));
+    const double pz_axis = evaluator.evaluate(1, 0, make_point3(0.0, 0.0, 1.0));
+    const double px_axis = evaluator.evaluate(1, 1, make_point3(1.0, 0.0, 0.0));
+    const double outside_cutoff = evaluator.evaluate(0, 0, make_point3(0.0, 0.0, 3.0));
 
     std::cout << "s(origin) = " << s_origin << '\n';
     std::cout << "p_z(z-axis) = " << pz_axis << '\n';

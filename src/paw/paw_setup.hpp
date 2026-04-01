@@ -1,4 +1,7 @@
 #pragma once
+#ifndef DFT_PAW_SETUP_HPP
+#define DFT_PAW_SETUP_HPP
+#include "ndarray/ndarray.hpp"
 
 #include <cstddef>
 #include <stdexcept>
@@ -10,7 +13,7 @@
 namespace dft
 {
 
-using DenseMatrix = std::vector<std::vector<double>>;
+using DenseMatrix = NDArray<double, 2, int>;
 
 struct XmlAttributeMap
 {
@@ -54,11 +57,6 @@ struct PAWChannel
     std::vector<RadialFunction> all_electron_partial_waves;
     std::vector<RadialFunction> pseudo_partial_waves;
 
-    DenseMatrix kinetic_correction;
-    DenseMatrix static_coulomb_correction;
-    DenseMatrix fixed_nonlocal_correction;
-    std::vector<std::vector<double>> dij;
-
     void validate(const std::string &setup_name) const;
     std::size_t num_projectors() const { return projectors.size(); }
 };
@@ -73,10 +71,12 @@ class PAWSetup
     }
 
     const std::string &symbol() const { return m_symbol; }
+    double atomic_number() const { return m_atomic_number; }
     double valence_charge() const { return m_valence_charge; }
     double cutoff_radius() const { return m_cutoff_radius; }
 
     void set_symbol(std::string symbol) { m_symbol = std::move(symbol); }
+    void set_atomic_number(double atomic_number) { m_atomic_number = atomic_number; }
     void set_valence_charge(double charge) { m_valence_charge = charge; }
     void set_cutoff_radius(double radius) { m_cutoff_radius = radius; }
 
@@ -108,22 +108,13 @@ class PAWSetup
     }
 
     std::vector<RadialFunction> &pseudo_partial_waves_by_state() { return m_pseudo_partial_waves_by_state; }
-    const std::vector<RadialFunction> &pseudo_partial_waves_by_state() const
-    {
-        return m_pseudo_partial_waves_by_state;
-    }
+    const std::vector<RadialFunction> &pseudo_partial_waves_by_state() const { return m_pseudo_partial_waves_by_state; }
 
     std::vector<RadialFunction> &projectors_by_state() { return m_projectors_by_state; }
     const std::vector<RadialFunction> &projectors_by_state() const { return m_projectors_by_state; }
 
-    DenseMatrix &kinetic_energy_differences() { return m_kinetic_energy_differences; }
-    const DenseMatrix &kinetic_energy_differences() const { return m_kinetic_energy_differences; }
-
-    DenseMatrix &static_coulomb_correction() { return m_static_coulomb_correction; }
-    const DenseMatrix &static_coulomb_correction() const { return m_static_coulomb_correction; }
-
-    DenseMatrix &fixed_nonlocal_correction() { return m_fixed_nonlocal_correction; }
-    const DenseMatrix &fixed_nonlocal_correction() const { return m_fixed_nonlocal_correction; }
+    std::vector<double> &kinetic_difference_values() { return m_kinetic_difference_values; }
+    const std::vector<double> &kinetic_difference_values() const { return m_kinetic_difference_values; }
 
     std::vector<PAWChannel> &channels() { return m_channels; }
     const std::vector<PAWChannel> &channels() const { return m_channels; }
@@ -135,6 +126,7 @@ class PAWSetup
 
   private:
     std::string m_symbol;
+    double m_atomic_number{0.0};
     double m_valence_charge{0.0};
     double m_cutoff_radius{0.0};
 
@@ -147,9 +139,7 @@ class PAWSetup
     std::vector<RadialFunction> m_all_electron_partial_waves_by_state;
     std::vector<RadialFunction> m_pseudo_partial_waves_by_state;
     std::vector<RadialFunction> m_projectors_by_state;
-    DenseMatrix m_kinetic_energy_differences;
-    DenseMatrix m_static_coulomb_correction;
-    DenseMatrix m_fixed_nonlocal_correction;
+    std::vector<double> m_kinetic_difference_values;
     std::vector<PAWChannel> m_channels;
 };
 
@@ -167,3 +157,4 @@ class PAWSetupRegistry
 PAWSetup load_paw_setup_xml(const std::string &filename);
 
 } // namespace dft
+#endif

@@ -1,5 +1,5 @@
-#include "paw/paw.hpp"
-#include "paw/radial_interpolator.hpp"
+#include "paw/paw_setup.hpp"
+#include "paw/interpolator.hpp"
 
 #include <cmath>
 #include <iostream>

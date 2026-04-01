@@ -11,7 +11,8 @@
 namespace
 {
 
-using Vec3 = dft::PeriodicKDTree3D::Vec3;
+using Point3 = dft::PeriodicKDTree3D::Point3;
+using Matrix3 = dft::PeriodicKDTree3D::Matrix3;
 using ImageDepth = dft::PeriodicKDTree3D::ImageDepth;
 
 struct NeighborKey
@@ -25,68 +26,77 @@ struct NeighborKey
     }
 };
 
-double Determinant3x3(const double a[3][3])
+Point3 make_point(double x, double y, double z)
 {
-    return a[0][0] * (a[1][1] * a[2][2] - a[1][2] * a[2][1]) -
-           a[0][1] * (a[1][0] * a[2][2] - a[1][2] * a[2][0]) +
-           a[0][2] * (a[1][0] * a[2][1] - a[1][1] * a[2][0]);
+    Point3 point(typename Point3::ShapeType{3});
+    point[0] = x;
+    point[1] = y;
+    point[2] = z;
+    return point;
 }
 
-void Invert3x3(const double a[3][3], double inv[3][3])
+double determinant_3x3(const Matrix3 &matrix)
 {
-    const double det = Determinant3x3(a);
-    if (std::abs(det) < 1e-14)
+    return matrix[0, 0] * (matrix[1, 1] * matrix[2, 2] - matrix[1, 2] * matrix[2, 1]) -
+           matrix[0, 1] * (matrix[1, 0] * matrix[2, 2] - matrix[1, 2] * matrix[2, 0]) +
+           matrix[0, 2] * (matrix[1, 0] * matrix[2, 1] - matrix[1, 1] * matrix[2, 0]);
+}
+
+void invert_3x3(const Matrix3 &matrix, Matrix3 &inverse)
+{
+    const double determinant = determinant_3x3(matrix);
+    if (std::abs(determinant) < 1e-14)
     {
         throw std::runtime_error("singular matrix");
     }
 
-    inv[0][0] = (a[1][1] * a[2][2] - a[1][2] * a[2][1]) / det;
-    inv[0][1] = (a[0][2] * a[2][1] - a[0][1] * a[2][2]) / det;
-    inv[0][2] = (a[0][1] * a[1][2] - a[0][2] * a[1][1]) / det;
+    inverse[0, 0] = (matrix[1, 1] * matrix[2, 2] - matrix[1, 2] * matrix[2, 1]) / determinant;
+    inverse[0, 1] = (matrix[0, 2] * matrix[2, 1] - matrix[0, 1] * matrix[2, 2]) / determinant;
+    inverse[0, 2] = (matrix[0, 1] * matrix[1, 2] - matrix[0, 2] * matrix[1, 1]) / determinant;
 
-    inv[1][0] = (a[1][2] * a[2][0] - a[1][0] * a[2][2]) / det;
-    inv[1][1] = (a[0][0] * a[2][2] - a[0][2] * a[2][0]) / det;
-    inv[1][2] = (a[0][2] * a[1][0] - a[0][0] * a[1][2]) / det;
+    inverse[1, 0] = (matrix[1, 2] * matrix[2, 0] - matrix[1, 0] * matrix[2, 2]) / determinant;
+    inverse[1, 1] = (matrix[0, 0] * matrix[2, 2] - matrix[0, 2] * matrix[2, 0]) / determinant;
+    inverse[1, 2] = (matrix[0, 2] * matrix[1, 0] - matrix[0, 0] * matrix[1, 2]) / determinant;
 
-    inv[2][0] = (a[1][0] * a[2][1] - a[1][1] * a[2][0]) / det;
-    inv[2][1] = (a[0][1] * a[2][0] - a[0][0] * a[2][1]) / det;
-    inv[2][2] = (a[0][0] * a[1][1] - a[0][1] * a[1][0]) / det;
+    inverse[2, 0] = (matrix[1, 0] * matrix[2, 1] - matrix[1, 1] * matrix[2, 0]) / determinant;
+    inverse[2, 1] = (matrix[0, 1] * matrix[2, 0] - matrix[0, 0] * matrix[2, 1]) / determinant;
+    inverse[2, 2] = (matrix[0, 0] * matrix[1, 1] - matrix[0, 1] * matrix[1, 0]) / determinant;
 }
 
-Vec3 Multiply(const double matrix[3][3], const Vec3 &vector)
+Point3 multiply(const Matrix3 &matrix, const Point3 &vector)
 {
-    return {
-        matrix[0][0] * vector[0] + matrix[0][1] * vector[1] + matrix[0][2] * vector[2],
-        matrix[1][0] * vector[0] + matrix[1][1] * vector[1] + matrix[1][2] * vector[2],
-        matrix[2][0] * vector[0] + matrix[2][1] * vector[1] + matrix[2][2] * vector[2],
-    };
+    return make_point(matrix[0, 0] * vector[0] + matrix[0, 1] * vector[1] + matrix[0, 2] * vector[2],
+                      matrix[1, 0] * vector[0] + matrix[1, 1] * vector[1] + matrix[1, 2] * vector[2],
+                      matrix[2, 0] * vector[0] + matrix[2, 1] * vector[1] + matrix[2, 2] * vector[2]);
 }
 
-double DistanceSquared(const Vec3 &x, const Vec3 &y)
+double distance_squared(const Point3 &left, const Point3 &right)
 {
-    const double dx = x[0] - y[0];
-    const double dy = x[1] - y[1];
-    const double dz = x[2] - y[2];
+    const double dx = left[0] - right[0];
+    const double dy = left[1] - right[1];
+    const double dz = left[2] - right[2];
     return dx * dx + dy * dy + dz * dz;
 }
 
-std::vector<NeighborKey> BruteForceNeighborsByImage(const std::vector<Vec3> &points, const dft::Structure::LatticeVectors &lattice,
-                                                    const Vec3 &query, double radius,
-                                                    const ImageDepth &periodic_images)
+std::vector<NeighborKey> brute_force_neighbors_by_image(const std::vector<Point3> &points,
+                                                        const dft::Structure::LatticeVectors &lattice,
+                                                        const Point3 &query,
+                                                        double radius,
+                                                        const ImageDepth &periodic_images)
 {
-    double cart_from_frac[3][3];
+    Matrix3 cartesian_from_fractional(typename Matrix3::ShapeType{3, 3});
     for (int row = 0; row < 3; ++row)
     {
         for (int col = 0; col < 3; ++col)
         {
-            cart_from_frac[row][col] = lattice[col, row];
+            cartesian_from_fractional[row, col] = lattice[col, row];
         }
     }
 
-    double frac_from_cart[3][3];
-    Invert3x3(cart_from_frac, frac_from_cart);
+    Matrix3 fractional_from_cartesian(typename Matrix3::ShapeType{3, 3});
+    invert_3x3(cartesian_from_fractional, fractional_from_cartesian);
 
-    Vec3 wrapped_query = Multiply(frac_from_cart, query);
+    Point3 wrapped_query = multiply(fractional_from_cartesian, query);
     for (int dim = 0; dim < 3; ++dim)
     {
         if (periodic_images[dim] > 0)
@@ -94,13 +104,13 @@ std::vector<NeighborKey> BruteForceNeighborsByImage(const std::vector<Vec3> &poi
             wrapped_query[dim] -= std::floor(wrapped_query[dim]);
         }
     }
-    wrapped_query = Multiply(cart_from_frac, wrapped_query);
+    wrapped_query = multiply(cartesian_from_fractional, wrapped_query);
 
     const double radius_squared = radius * radius;
     std::vector<NeighborKey> neighbors;
-    for (std::size_t i = 0; i < points.size(); ++i)
+    for (std::size_t point_index = 0; point_index < points.size(); ++point_index)
     {
-        Vec3 wrapped_point = Multiply(frac_from_cart, points[i]);
+        Point3 wrapped_point = multiply(fractional_from_cartesian, points[point_index]);
         for (int dim = 0; dim < 3; ++dim)
         {
             if (periodic_images[dim] > 0)
@@ -108,24 +118,24 @@ std::vector<NeighborKey> BruteForceNeighborsByImage(const std::vector<Vec3> &poi
                 wrapped_point[dim] -= std::floor(wrapped_point[dim]);
             }
         }
-        wrapped_point = Multiply(cart_from_frac, wrapped_point);
+        wrapped_point = multiply(cartesian_from_fractional, wrapped_point);
 
-        for (int sx = -periodic_images[0]; sx <= periodic_images[0]; ++sx)
+        for (int shift_x = -periodic_images[0]; shift_x <= periodic_images[0]; ++shift_x)
         {
-            for (int sy = -periodic_images[1]; sy <= periodic_images[1]; ++sy)
+            for (int shift_y = -periodic_images[1]; shift_y <= periodic_images[1]; ++shift_y)
             {
-                for (int sz = -periodic_images[2]; sz <= periodic_images[2]; ++sz)
+                for (int shift_z = -periodic_images[2]; shift_z <= periodic_images[2]; ++shift_z)
                 {
-                    const Vec3 image_shift = Multiply(cart_from_frac, {static_cast<double>(sx), static_cast<double>(sy),
-                                                                       static_cast<double>(sz)});
-                    const Vec3 image_point{
-                        wrapped_point[0] + image_shift[0],
-                        wrapped_point[1] + image_shift[1],
-                        wrapped_point[2] + image_shift[2],
-                    };
-                    if (DistanceSquared(wrapped_query, image_point) <= radius_squared)
+                    const Point3 image_shift = multiply(cartesian_from_fractional,
+                                                        make_point(static_cast<double>(shift_x),
+                                                                   static_cast<double>(shift_y),
+                                                                   static_cast<double>(shift_z)));
+                    const Point3 image_point = make_point(wrapped_point[0] + image_shift[0],
+                                                          wrapped_point[1] + image_shift[1],
+                                                          wrapped_point[2] + image_shift[2]);
+                    if (distance_squared(wrapped_query, image_point) <= radius_squared)
                     {
-                        neighbors.push_back({i, {sx, sy, sz}});
+                        neighbors.push_back({point_index, {shift_x, shift_y, shift_z}});
                     }
                 }
             }
@@ -133,13 +143,13 @@ std::vector<NeighborKey> BruteForceNeighborsByImage(const std::vector<Vec3> &poi
     }
 
     std::sort(neighbors.begin(), neighbors.end(),
-              [](const NeighborKey &lhs, const NeighborKey &rhs)
+              [](const NeighborKey &left, const NeighborKey &right)
               {
-                  if (lhs.periodic_image != rhs.periodic_image)
+                  if (left.periodic_image != right.periodic_image)
                   {
-                      return lhs.periodic_image < rhs.periodic_image;
+                      return left.periodic_image < right.periodic_image;
                   }
-                  return lhs.index < rhs.index;
+                  return left.index < right.index;
               });
 
     return neighbors;
@@ -159,7 +169,13 @@ int main()
     DFTGLLHexSpace fespace(dft_mesh, 1);
     const ImageDepth periodic_images{1, 1, 1};
     dft::PeriodicGridPointLocator locator(fespace, periodic_images);
-    const auto &points = locator.points();
+
+    std::vector<Point3> points;
+    points.reserve(locator.point_count());
+    for (std::size_t point_index = 0; point_index < locator.point_count(); ++point_index)
+    {
+        points.push_back(locator.point(point_index));
+    }
 
     if (points.empty())
     {
@@ -167,11 +183,12 @@ int main()
         return 1;
     }
 
-    const Vec3 query = points.front();
+    const Point3 query = points.front();
     const double radius = 0.8;
 
-    const auto kd_neighbors = locator.RadiusSearch(query, radius);
-    auto brute_neighbors = BruteForceNeighborsByImage(points, structure->lattice(), query, radius, periodic_images);
+    const auto kd_neighbors = locator.radius_search(query, radius);
+    const auto brute_neighbors =
+        brute_force_neighbors_by_image(points, structure->lattice(), query, radius, periodic_images);
 
     std::vector<NeighborKey> kd_by_image;
     kd_by_image.reserve(kd_neighbors.size());
@@ -181,13 +198,13 @@ int main()
     }
 
     std::sort(kd_by_image.begin(), kd_by_image.end(),
-              [](const NeighborKey &lhs, const NeighborKey &rhs)
+              [](const NeighborKey &left, const NeighborKey &right)
               {
-                  if (lhs.periodic_image != rhs.periodic_image)
+                  if (left.periodic_image != right.periodic_image)
                   {
-                      return lhs.periodic_image < rhs.periodic_image;
+                      return left.periodic_image < right.periodic_image;
                   }
-                  return lhs.index < rhs.index;
+                  return left.index < right.index;
               });
 
     if (kd_by_image != brute_neighbors)
@@ -196,27 +213,25 @@ int main()
         return 1;
     }
 
-    const auto &lat = structure->lattice();
-    const Vec3 shifted_query{
-        query[0] + lat[0, 0],
-        query[1] + lat[0, 1],
-        query[2] + lat[0, 2],
-    };
-    const auto shifted_neighbors = locator.RadiusSearch(shifted_query, radius);
+    const auto &lattice = structure->lattice();
+    const Point3 shifted_query = make_point(query[0] + lattice[0, 0], query[1] + lattice[0, 1], query[2] + lattice[0, 2]);
+    const auto shifted_neighbors = locator.radius_search(shifted_query, radius);
+
     std::vector<NeighborKey> shifted_by_image;
     shifted_by_image.reserve(shifted_neighbors.size());
     for (const auto &neighbor : shifted_neighbors)
     {
         shifted_by_image.push_back({neighbor.index, neighbor.periodic_image});
     }
+
     std::sort(shifted_by_image.begin(), shifted_by_image.end(),
-              [](const NeighborKey &lhs, const NeighborKey &rhs)
+              [](const NeighborKey &left, const NeighborKey &right)
               {
-                  if (lhs.periodic_image != rhs.periodic_image)
+                  if (left.periodic_image != right.periodic_image)
                   {
-                      return lhs.periodic_image < rhs.periodic_image;
+                      return left.periodic_image < right.periodic_image;
                   }
-                  return lhs.index < rhs.index;
+                  return left.index < right.index;
               });
 
     if (shifted_by_image != kd_by_image)
@@ -228,8 +243,9 @@ int main()
 
     const ImageDepth mixed_periodicity{1, 0, 0};
     dft::PeriodicGridPointLocator mixed_locator(fespace, mixed_periodicity);
-    const auto mixed_kd_neighbors = mixed_locator.RadiusSearch(query, radius);
-    const auto mixed_brute = BruteForceNeighborsByImage(points, structure->lattice(), query, radius, mixed_periodicity);
+    const auto mixed_kd_neighbors = mixed_locator.radius_search(query, radius);
+    const auto mixed_brute =
+        brute_force_neighbors_by_image(points, structure->lattice(), query, radius, mixed_periodicity);
 
     std::vector<NeighborKey> mixed_kd_by_image;
     mixed_kd_by_image.reserve(mixed_kd_neighbors.size());
@@ -237,14 +253,15 @@ int main()
     {
         mixed_kd_by_image.push_back({neighbor.index, neighbor.periodic_image});
     }
+
     std::sort(mixed_kd_by_image.begin(), mixed_kd_by_image.end(),
-              [](const NeighborKey &lhs, const NeighborKey &rhs)
+              [](const NeighborKey &left, const NeighborKey &right)
               {
-                  if (lhs.periodic_image != rhs.periodic_image)
+                  if (left.periodic_image != right.periodic_image)
                   {
-                      return lhs.periodic_image < rhs.periodic_image;
+                      return left.periodic_image < right.periodic_image;
                   }
-                  return lhs.index < rhs.index;
+                  return left.index < right.index;
               });
 
     if (mixed_kd_by_image != mixed_brute)

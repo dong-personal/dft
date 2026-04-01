@@ -1,3 +1,5 @@
+
+
 #include "dftmesh.h"
 
 #include <algorithm>
@@ -79,8 +81,7 @@ void DFTMesh::init_periodic_cell_from_lattice(const Structure::LatticeVectors &l
         throw std::runtime_error("Periodic mesh needs >= 2 interior vertices per direction. Use nx, ny, nz >= 3.");
     }
 
-    mfem::Mesh base_mesh =
-        mfem::Mesh::MakeCartesian3D(nx, ny, nz, element_type, 1.0, 1.0, 1.0, use_sfc_ordering);
+    mfem::Mesh base_mesh = mfem::Mesh::MakeCartesian3D(nx, ny, nz, element_type, 1.0, 1.0, 1.0, use_sfc_ordering);
 
     for (int vertex_index = 0; vertex_index < base_mesh.GetNV(); ++vertex_index)
     {
@@ -187,8 +188,7 @@ void DFTMesh::ensure_structure_() const
     }
 }
 
-std::vector<mfem::Vector>
-DFTMesh::make_translations_from_lattice_(const Structure::LatticeVectors &lattice_vectors)
+std::vector<mfem::Vector> DFTMesh::make_translations_from_lattice_(const Structure::LatticeVectors &lattice_vectors)
 {
     std::vector<mfem::Vector> translations;
     translations.reserve(kSpatialDimension);

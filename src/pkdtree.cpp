@@ -1,7 +1,6 @@
 #include "pkdtree.hpp"
 
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <stdexcept>
 
@@ -11,204 +10,266 @@ namespace dft
 namespace
 {
 
-double Determinant3x3(const double a[3][3])
+constexpr int kSpatialDimension = 3;
+constexpr int kKdTreeLeafSize = 10;
+constexpr double kSingularTolerance = 1e-14;
+
+using Point3 = PeriodicKDTree3D::Point3;
+using Matrix3 = PeriodicKDTree3D::Matrix3;
+
+Point3 make_point(double x, double y, double z)
 {
-    return a[0][0] * (a[1][1] * a[2][2] - a[1][2] * a[2][1]) -
-           a[0][1] * (a[1][0] * a[2][2] - a[1][2] * a[2][0]) +
-           a[0][2] * (a[1][0] * a[2][1] - a[1][1] * a[2][0]);
+    Point3 point(typename Point3::ShapeType{3});
+    point[0] = x;
+    point[1] = y;
+    point[2] = z;
+    return point;
 }
 
-void Invert3x3(const double a[3][3], double inv[3][3])
+double determinant_3x3(const Matrix3 &matrix)
 {
-    const double det = Determinant3x3(a);
-    if (std::abs(det) < 1e-14)
+    return matrix[0, 0] * (matrix[1, 1] * matrix[2, 2] - matrix[1, 2] * matrix[2, 1]) -
+           matrix[0, 1] * (matrix[1, 0] * matrix[2, 2] - matrix[1, 2] * matrix[2, 0]) +
+           matrix[0, 2] * (matrix[1, 0] * matrix[2, 1] - matrix[1, 1] * matrix[2, 0]);
+}
+
+void invert_3x3(const Matrix3 &matrix, Matrix3 &inverse)
+{
+    const double determinant = determinant_3x3(matrix);
+    if (std::abs(determinant) < kSingularTolerance)
     {
         throw std::runtime_error("PeriodicKDTree3D requires a non-singular lattice");
     }
 
-    inv[0][0] = (a[1][1] * a[2][2] - a[1][2] * a[2][1]) / det;
-    inv[0][1] = (a[0][2] * a[2][1] - a[0][1] * a[2][2]) / det;
-    inv[0][2] = (a[0][1] * a[1][2] - a[0][2] * a[1][1]) / det;
+    inverse[0, 0] = (matrix[1, 1] * matrix[2, 2] - matrix[1, 2] * matrix[2, 1]) / determinant;
+    inverse[0, 1] = (matrix[0, 2] * matrix[2, 1] - matrix[0, 1] * matrix[2, 2]) / determinant;
+    inverse[0, 2] = (matrix[0, 1] * matrix[1, 2] - matrix[0, 2] * matrix[1, 1]) / determinant;
 
-    inv[1][0] = (a[1][2] * a[2][0] - a[1][0] * a[2][2]) / det;
-    inv[1][1] = (a[0][0] * a[2][2] - a[0][2] * a[2][0]) / det;
-    inv[1][2] = (a[0][2] * a[1][0] - a[0][0] * a[1][2]) / det;
+    inverse[1, 0] = (matrix[1, 2] * matrix[2, 0] - matrix[1, 0] * matrix[2, 2]) / determinant;
+    inverse[1, 1] = (matrix[0, 0] * matrix[2, 2] - matrix[0, 2] * matrix[2, 0]) / determinant;
+    inverse[1, 2] = (matrix[0, 2] * matrix[1, 0] - matrix[0, 0] * matrix[1, 2]) / determinant;
 
-    inv[2][0] = (a[1][0] * a[2][1] - a[1][1] * a[2][0]) / det;
-    inv[2][1] = (a[0][1] * a[2][0] - a[0][0] * a[2][1]) / det;
-    inv[2][2] = (a[0][0] * a[1][1] - a[0][1] * a[1][0]) / det;
+    inverse[2, 0] = (matrix[1, 0] * matrix[2, 1] - matrix[1, 1] * matrix[2, 0]) / determinant;
+    inverse[2, 1] = (matrix[0, 1] * matrix[2, 0] - matrix[0, 0] * matrix[2, 1]) / determinant;
+    inverse[2, 2] = (matrix[0, 0] * matrix[1, 1] - matrix[0, 1] * matrix[1, 0]) / determinant;
 }
 
-PeriodicKDTree3D::Vec3 ToPeriodicPoint(const dft::DFTMesh::SpatialPoint &point)
+mfem::DenseMatrix point_matrix_from_spatial_points(const std::vector<dft::DFTMesh::SpatialPoint> &points)
 {
-    return {point[0], point[1], point[2]};
-}
-
-std::vector<PeriodicKDTree3D::Vec3> ToPeriodicPointVector(const std::vector<dft::DFTMesh::SpatialPoint> &points)
-{
-    std::vector<PeriodicKDTree3D::Vec3> converted_points;
-    converted_points.reserve(points.size());
-    for (const auto &point : points)
+    mfem::DenseMatrix point_matrix(kSpatialDimension, static_cast<int>(points.size()));
+    for (int point_index = 0; point_index < point_matrix.Width(); ++point_index)
     {
-        converted_points.push_back(ToPeriodicPoint(point));
+        for (int dimension = 0; dimension < kSpatialDimension; ++dimension)
+        {
+            point_matrix(dimension, point_index) = points[static_cast<std::size_t>(point_index)][dimension];
+        }
     }
-    return converted_points;
+
+    return point_matrix;
 }
 
 } // namespace
 
-PeriodicKDTree3D::PeriodicKDTree3D(const std::vector<Vec3> &points, const Structure::LatticeVectors &lattice,
+PeriodicKDTree3D::PeriodicKDTree3D(const mfem::DenseMatrix &point_coordinates, const Structure::LatticeVectors &lattice,
                                    ImageDepth periodic_images)
-    : points_(points),
-      lattice_(lattice),
-      periodic_images_(periodic_images),
-      matrices_(BuildLatticeMatrices_(lattice_)),
-      image_shifts_(),
-      base_point_cloud_(),
-      index_(3, base_point_cloud_, nanoflann::KDTreeSingleIndexAdaptorParams(10))
+    : m_points(point_coordinates),
+      m_lattice(lattice),
+      m_periodic_images(periodic_images),
+      m_lattice_matrices(build_lattice_matrices(m_lattice)),
+      m_image_shifts(),
+      m_base_point_cloud(),
+      m_index(kSpatialDimension, m_base_point_cloud, nanoflann::KDTreeSingleIndexAdaptorParams(kKdTreeLeafSize))
 {
-    for (const int value : periodic_images_)
-    {
-        if (value < 0)
-        {
-            throw std::invalid_argument("PeriodicKDTree3D requires non-negative image depths");
-        }
-    }
-    BuildImageShifts_();
-    BuildBasePointCloud_();
-    index_.buildIndex();
+    validate_inputs();
+    build_image_shifts();
+    build_base_point_cloud();
+    m_index.buildIndex();
 }
 
-std::vector<PeriodicNeighbor> PeriodicKDTree3D::RadiusSearch(const Vec3 &query_point, double radius) const
+PeriodicKDTree3D::PeriodicKDTree3D(const std::vector<Point3> &points, const Structure::LatticeVectors &lattice,
+                                   ImageDepth periodic_images)
+    : PeriodicKDTree3D(make_point_matrix(points), lattice, periodic_images)
+{
+}
+
+std::vector<PeriodicNeighbor> PeriodicKDTree3D::radius_search(const Point3 &query_point, double radius) const
 {
     if (radius < 0.0)
     {
-        throw std::invalid_argument("PeriodicKDTree3D::RadiusSearch requires radius >= 0");
+        throw std::invalid_argument("PeriodicKDTree3D::radius_search requires radius >= 0");
     }
 
-    const Vec3 wrapped_query = WrapToUnitCell_(query_point, matrices_, periodic_images_);
+    const Point3 wrapped_query = wrap_to_unit_cell(query_point, m_lattice_matrices, m_periodic_images);
     std::vector<PeriodicNeighbor> neighbors;
 
-    nanoflann::SearchParameters search_params;
-    for (const auto &image_shift_int : image_shifts_)
+    nanoflann::SearchParameters search_parameters;
+    for (const std::array<int, 3> &image_shift : m_image_shifts)
     {
-        const Vec3 image_shift{
-            static_cast<double>(image_shift_int[0]),
-            static_cast<double>(image_shift_int[1]),
-            static_cast<double>(image_shift_int[2]),
-        };
-        const Vec3 cartesian_shift = Multiply_(matrices_.cart_from_frac, image_shift);
-        const Vec3 shifted_query{
-            wrapped_query[0] - cartesian_shift[0],
-            wrapped_query[1] - cartesian_shift[1],
-            wrapped_query[2] - cartesian_shift[2],
-        };
+        const Point3 fractional_shift = make_point(static_cast<double>(image_shift[0]),
+                                                   static_cast<double>(image_shift[1]),
+                                                   static_cast<double>(image_shift[2]));
+        const Point3 cartesian_shift = multiply(m_lattice_matrices.cartesian_from_fractional, fractional_shift);
+        const Point3 shifted_query = make_point(wrapped_query[0] - cartesian_shift[0],
+                                                wrapped_query[1] - cartesian_shift[1],
+                                                wrapped_query[2] - cartesian_shift[2]);
 
         std::vector<nanoflann::ResultItem<std::size_t, double>> matches;
-        index_.radiusSearch(shifted_query.data(), radius * radius, matches, search_params);
+        m_index.radiusSearch(shifted_query.data_pointer(), radius * radius, matches, search_parameters);
         for (const auto &match : matches)
         {
-            const BasePoint &base_point = base_point_cloud_.points[match.first];
-            neighbors.push_back({base_point.original_index, match.second, image_shift_int});
+            neighbors.push_back(
+                {static_cast<std::size_t>(m_base_point_cloud.original_indices[static_cast<int>(match.first)]),
+                 match.second,
+                 image_shift});
         }
     }
 
     std::sort(neighbors.begin(), neighbors.end(),
-              [](const PeriodicNeighbor &lhs, const PeriodicNeighbor &rhs)
+              [](const PeriodicNeighbor &left, const PeriodicNeighbor &right)
               {
-                  if (lhs.periodic_image != rhs.periodic_image)
+                  if (left.periodic_image != right.periodic_image)
                   {
-                      return lhs.periodic_image < rhs.periodic_image;
+                      return left.periodic_image < right.periodic_image;
                   }
-                  if (lhs.distance_squared != rhs.distance_squared)
+                  if (left.distance_squared != right.distance_squared)
                   {
-                      return lhs.distance_squared < rhs.distance_squared;
+                      return left.distance_squared < right.distance_squared;
                   }
-                  return lhs.index < rhs.index;
+                  return left.index < right.index;
               });
 
     neighbors.erase(std::unique(neighbors.begin(), neighbors.end(),
-                                [](const PeriodicNeighbor &lhs, const PeriodicNeighbor &rhs)
+                                [](const PeriodicNeighbor &left, const PeriodicNeighbor &right)
                                 {
-                                    return lhs.index == rhs.index && lhs.periodic_image == rhs.periodic_image;
+                                    return left.index == right.index && left.periodic_image == right.periodic_image;
                                 }),
                     neighbors.end());
 
     return neighbors;
 }
 
-PeriodicKDTree3D::LatticeMatrices PeriodicKDTree3D::BuildLatticeMatrices_(const Structure::LatticeVectors &lattice)
+PeriodicKDTree3D::Point3 PeriodicKDTree3D::point(std::size_t point_index) const
 {
-    LatticeMatrices matrices;
-    for (int row = 0; row < 3; ++row)
+    if (point_index >= point_count())
     {
-        for (int col = 0; col < 3; ++col)
+        throw std::out_of_range("PeriodicKDTree3D point index out of range");
+    }
+
+    return make_point(m_points(0, static_cast<int>(point_index)),
+                      m_points(1, static_cast<int>(point_index)),
+                      m_points(2, static_cast<int>(point_index)));
+}
+
+mfem::DenseMatrix PeriodicKDTree3D::make_point_matrix(const std::vector<Point3> &points)
+{
+    mfem::DenseMatrix point_matrix(kSpatialDimension, static_cast<int>(points.size()));
+    for (int point_index = 0; point_index < point_matrix.Width(); ++point_index)
+    {
+        for (int dimension = 0; dimension < kSpatialDimension; ++dimension)
         {
-            matrices.cart_from_frac[row][col] = lattice[col, row];
+            point_matrix(dimension, point_index) = points[static_cast<std::size_t>(point_index)][dimension];
         }
     }
-    Invert3x3(matrices.cart_from_frac, matrices.frac_from_cart);
+
+    return point_matrix;
+}
+
+PeriodicKDTree3D::LatticeMatrices PeriodicKDTree3D::build_lattice_matrices(const Structure::LatticeVectors &lattice)
+{
+    LatticeMatrices matrices;
+    for (int row = 0; row < kSpatialDimension; ++row)
+    {
+        for (int column = 0; column < kSpatialDimension; ++column)
+        {
+            matrices.cartesian_from_fractional[row, column] = lattice[column, row];
+        }
+    }
+
+    invert_3x3(matrices.cartesian_from_fractional, matrices.fractional_from_cartesian);
     return matrices;
 }
 
-PeriodicKDTree3D::Vec3 PeriodicKDTree3D::WrapToUnitCell_(const Vec3 &point, const LatticeMatrices &matrices,
-                                                         const ImageDepth &periodic_images)
+PeriodicKDTree3D::Point3 PeriodicKDTree3D::wrap_to_unit_cell(const Point3 &point,
+                                                             const LatticeMatrices &matrices,
+                                                             const ImageDepth &periodic_images)
 {
-    Vec3 fractional = Multiply_(matrices.frac_from_cart, point);
-    for (int i = 0; i < 3; ++i)
+    Point3 fractional_coordinates = multiply(matrices.fractional_from_cartesian, point);
+    for (int dimension = 0; dimension < kSpatialDimension; ++dimension)
     {
-        if (periodic_images[i] > 0)
+        if (periodic_images[dimension] > 0)
         {
-            fractional[i] -= std::floor(fractional[i]);
+            fractional_coordinates[dimension] -= std::floor(fractional_coordinates[dimension]);
         }
     }
-    return Multiply_(matrices.cart_from_frac, fractional);
+
+    return multiply(matrices.cartesian_from_fractional, fractional_coordinates);
 }
 
-PeriodicKDTree3D::Vec3 PeriodicKDTree3D::Multiply_(const double matrix[3][3], const Vec3 &vector)
+PeriodicKDTree3D::Point3 PeriodicKDTree3D::multiply(const Matrix3 &matrix, const Point3 &vector)
 {
-    return {
-        matrix[0][0] * vector[0] + matrix[0][1] * vector[1] + matrix[0][2] * vector[2],
-        matrix[1][0] * vector[0] + matrix[1][1] * vector[1] + matrix[1][2] * vector[2],
-        matrix[2][0] * vector[0] + matrix[2][1] * vector[1] + matrix[2][2] * vector[2],
-    };
+    return make_point(matrix[0, 0] * vector[0] + matrix[0, 1] * vector[1] + matrix[0, 2] * vector[2],
+                      matrix[1, 0] * vector[0] + matrix[1, 1] * vector[1] + matrix[1, 2] * vector[2],
+                      matrix[2, 0] * vector[0] + matrix[2, 1] * vector[1] + matrix[2, 2] * vector[2]);
 }
 
-void PeriodicKDTree3D::BuildImageShifts_()
+void PeriodicKDTree3D::validate_inputs() const
 {
-    image_shifts_.clear();
-    for (int i = -periodic_images_[0]; i <= periodic_images_[0]; ++i)
+    if (m_points.Height() != kSpatialDimension)
     {
-        for (int j = -periodic_images_[1]; j <= periodic_images_[1]; ++j)
+        throw std::invalid_argument("PeriodicKDTree3D requires point coordinates stored as a 3 x N matrix");
+    }
+
+    for (const int periodic_depth : m_periodic_images)
+    {
+        if (periodic_depth < 0)
         {
-            for (int k = -periodic_images_[2]; k <= periodic_images_[2]; ++k)
+            throw std::invalid_argument("PeriodicKDTree3D requires non-negative image depths");
+        }
+    }
+}
+
+void PeriodicKDTree3D::build_image_shifts()
+{
+    m_image_shifts.clear();
+    for (int shift_x = -m_periodic_images[0]; shift_x <= m_periodic_images[0]; ++shift_x)
+    {
+        for (int shift_y = -m_periodic_images[1]; shift_y <= m_periodic_images[1]; ++shift_y)
+        {
+            for (int shift_z = -m_periodic_images[2]; shift_z <= m_periodic_images[2]; ++shift_z)
             {
-                image_shifts_.push_back({i, j, k});
+                m_image_shifts.push_back({shift_x, shift_y, shift_z});
             }
         }
     }
 }
 
-void PeriodicKDTree3D::BuildBasePointCloud_()
+void PeriodicKDTree3D::build_base_point_cloud()
 {
-    base_point_cloud_.points.clear();
-    base_point_cloud_.points.reserve(points_.size());
+    m_base_point_cloud.wrapped_points.SetSize(kSpatialDimension, m_points.Width());
+    m_base_point_cloud.original_indices.SetSize(m_points.Width());
 
-    for (std::size_t original_index = 0; original_index < points_.size(); ++original_index)
+    for (int point_index = 0; point_index < m_points.Width(); ++point_index)
     {
-        const Vec3 wrapped_point = WrapToUnitCell_(points_[original_index], matrices_, periodic_images_);
-        base_point_cloud_.points.push_back({wrapped_point, original_index});
+        const Point3 point_coordinates =
+            make_point(m_points(0, point_index), m_points(1, point_index), m_points(2, point_index));
+        const Point3 wrapped_point = wrap_to_unit_cell(point_coordinates, m_lattice_matrices, m_periodic_images);
+        for (int dimension = 0; dimension < kSpatialDimension; ++dimension)
+        {
+            m_base_point_cloud.wrapped_points(dimension, point_index) = wrapped_point[dimension];
+        }
+        m_base_point_cloud.original_indices[point_index] = point_index;
     }
 }
 
 PeriodicGridPointLocator::PeriodicGridPointLocator(const DFTGLLHexSpace &space, ImageDepth periodic_images)
-    : tree_(ToPeriodicPointVector(space.TrueDofCoordinates()), space.MeshSource().lattice(), periodic_images)
+    : m_tree(point_matrix_from_spatial_points(space.true_dof_coordinates()), space.mesh_source().lattice(),
+             periodic_images)
 {
 }
 
-std::vector<PeriodicNeighbor> PeriodicGridPointLocator::RadiusSearch(const Vec3 &query_point, double radius) const
+std::vector<PeriodicNeighbor> PeriodicGridPointLocator::radius_search(const Point3 &query_point, double radius) const
 {
-    return tree_.RadiusSearch(query_point, radius);
+    return m_tree.radius_search(query_point, radius);
 }
 
 } // namespace dft

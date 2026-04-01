@@ -1,5 +1,6 @@
 #pragma once
-
+#ifndef DFT_KINETIC_HPP
+#define DFT_KINETIC_HPP
 #include "fespace.h"
 #include <iostream>
 
@@ -32,3 +33,4 @@ class KineticOperator
 
     mfem::ConstantCoefficient m_half_coefficient{0.5};
 };
+#endif // DFT_KINETIC_HPP

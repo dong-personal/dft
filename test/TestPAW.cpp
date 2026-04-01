@@ -1,7 +1,24 @@
-#include "paw/paw.hpp"
+#include "paw/ham_correction.hpp"
+#include "paw/paw_setup.hpp"
 
 #include <iostream>
 #include <string>
+
+namespace
+{
+
+std::size_t magnetic_channel_count(const dft::PAWSetup &setup)
+{
+    std::size_t count = 0;
+    for (const dft::PAWState &state : setup.states())
+    {
+        count += static_cast<std::size_t>(2 * state.l + 1);
+    }
+
+    return count;
+}
+
+} // namespace
 
 int main()
 {
@@ -11,6 +28,7 @@ int main()
     registry.add(dft::load_paw_setup_xml(paw_path));
 
     const dft::PAWSetup &stored = registry.get("C");
+    const dft::HamCorrection correction = dft::build_ham_correction(stored);
 
     std::cout << "Stored PAW setup for " << stored.symbol() << '\n';
     std::cout << "Valence charge: " << stored.valence_charge() << '\n';
@@ -23,7 +41,7 @@ int main()
     std::cout << "Projectors: " << stored.num_projectors() << '\n';
     std::cout << "Local potential samples: " << stored.local_potential().size() << '\n';
     std::cout << "Core density samples: " << stored.core_density().size() << '\n';
-    std::cout << "Fixed nonlocal matrix size: " << stored.fixed_nonlocal_correction().size() << '\n';
+    std::cout << "Fixed nonlocal matrix size: " << correction.fixed_nonlocal_correction().shape()[0] << '\n';
 
     if (!registry.has("C"))
     {
@@ -67,27 +85,21 @@ int main()
         return 1;
     }
 
-    if (stored.kinetic_energy_differences().size() != stored.states().size())
+    if (static_cast<std::size_t>(correction.kinetic_energy_differences().shape()[0]) != magnetic_channel_count(stored))
     {
         std::cerr << "Unexpected kinetic-energy-differences matrix size" << std::endl;
         return 1;
     }
 
-    if (stored.static_coulomb_correction().size() != stored.states().size())
+    if (static_cast<std::size_t>(correction.static_coulomb_correction().shape()[0]) != magnetic_channel_count(stored))
     {
         std::cerr << "Unexpected static Coulomb correction matrix size" << std::endl;
         return 1;
     }
 
-    if (stored.fixed_nonlocal_correction().size() != stored.states().size())
+    if (static_cast<std::size_t>(correction.fixed_nonlocal_correction().shape()[0]) != magnetic_channel_count(stored))
     {
         std::cerr << "Unexpected fixed nonlocal correction matrix size" << std::endl;
-        return 1;
-    }
-
-    if (stored.channels().front().fixed_nonlocal_correction.size() != stored.channels().front().projectors.size())
-    {
-        std::cerr << "Channel fixed nonlocal matrix does not match projector count" << std::endl;
         return 1;
     }
 
